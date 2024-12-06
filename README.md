@@ -21,7 +21,7 @@ cd mirage-nova
 
 ### Install Go
 
-Ensure that [Go](https://golang.org/dl/) is installed on your system. The minimum requirement of Go is 1.23.
+Ensure that [Go](https://golang.org/dl/) is installed on your system. The minimum required version of Go is 1.23.
 
 You can verify the installation by running:
 ```bash
