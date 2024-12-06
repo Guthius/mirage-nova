@@ -31,39 +31,30 @@ type Npc struct {
 var Npcs [MaxNpcs]Npc
 
 func init() {
-	Npcs = loadNpcs()
+	loadNpcs()
 }
 
 func getNpcFilename(npcId int) string {
 	return fmt.Sprintf("data/npcs/npc%d.gob", npcId+1)
 }
 
-func loadNpc(npcId int) Npc {
-	npc := Npc{
-		Behaviour:  NpcBehaviourAttackOnSight,
-		DropItemId: -1,
-	}
+func loadNpc(npcId int) {
+	Npcs[npcId].Clear()
 
 	fileName := getNpcFilename(npcId)
 
-	err := loadFromFile(fileName, &npc)
+	err := loadFromFile(fileName, &Npcs[npcId])
 	if err != nil {
 		log.Printf("Error loading npc '%s': %s\n", fileName, err)
 	}
-
-	return npc
 }
 
-func loadNpcs() [MaxNpcs]Npc {
-	var npcs [MaxNpcs]Npc
-
+func loadNpcs() {
 	createFolderIfNotExists("data/npcs")
 
 	for i := 0; i < MaxNpcs; i++ {
-		npcs[i] = loadNpc(i)
+		loadNpc(i)
 	}
-
-	return npcs
 }
 
 func SaveNpc(npcId int) {
@@ -90,4 +81,20 @@ func GetNpc(npcId int) *Npc {
 		return nil
 	}
 	return &Npcs[npcId]
+}
+
+func (n *Npc) Clear() {
+	n.Name = ""
+	n.AttackSay = ""
+	n.Sprite = 0
+	n.SpawnSecs = 0
+	n.Behaviour = NpcBehaviourAttackOnSight
+	n.Range = 0
+	n.DropChance = 0
+	n.DropItemId = -1
+	n.DropItemValue = 0
+	n.Stats.Strength = 0
+	n.Stats.Defense = 0
+	n.Stats.Speed = 0
+	n.Stats.Magic = 0
 }

@@ -1,6 +1,6 @@
-![GitHub License](https://img.shields.io/github/license/Guthius/mirage-nova)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Guthius/mirage-nova/go.yml)
 ![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/guthius/mirage-nova)
+![GitHub License](https://img.shields.io/github/license/Guthius/mirage-nova)
 
 # Mirage Nova
 

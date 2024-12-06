@@ -391,6 +391,10 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		Exp:       0,
 		Access:    AccessNone,
 		PK:        false,
+		Map:       StartMap,
+		X:         StartX,
+		Y:         StartY,
+		Dir:       Down,
 
 		Vitals: Vitals{
 			HP: class.GetMaxVital(VitalHP, class.Stats.Strength),
@@ -405,7 +409,7 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 			Magic:    class.Stats.Magic,
 		},
 	}
-	
+
 	character.ClearInventory()
 	character.ClearSpells()
 
