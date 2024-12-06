@@ -10,18 +10,16 @@ import (
 
 type PacketHandler func(player *Player, packet *packet.Reader)
 
-var PacketHandlers = func() [MaxClientPacketId]PacketHandler {
-	var handlers [MaxClientPacketId]PacketHandler
+var PacketHandlers [MaxClientPacketId]PacketHandler
 
-	handlers[ClpGetClasses] = HandleGetClasses
-	handlers[ClpCreateAccount] = HandleCreateAccount
-	handlers[ClpDeleteAccount] = HandleDeleteAccount
-	handlers[ClpLogin] = HandleLogin
-	handlers[ClpCreateCharacter] = HandleCreateCharacter
-	handlers[ClpDeleteCharacter] = HandleDeleteCharacter
-
-	return handlers
-}()
+func init() {
+	PacketHandlers[ClpGetClasses] = HandleGetClasses
+	PacketHandlers[ClpCreateAccount] = HandleCreateAccount
+	PacketHandlers[ClpDeleteAccount] = HandleDeleteAccount
+	PacketHandlers[ClpLogin] = HandleLogin
+	PacketHandlers[ClpCreateCharacter] = HandleCreateCharacter
+	PacketHandlers[ClpDeleteCharacter] = HandleDeleteCharacter
+}
 
 func HandleData(player *Player, bytes []byte) {
 	player.Buffer = append(player.Buffer, bytes...)
@@ -241,8 +239,8 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 		return
 	}
 
-	if len(characterName) < 3 {
-		player.SendAlert("Character name must be at least three characters in length.")
+	if len(characterName) < MinCharacterNameLength {
+		player.SendAlert(fmt.Sprintf("Character name must be at least %d characters in length.", MinCharacterNameLength))
 		return
 	}
 
@@ -253,7 +251,7 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 	}
 
 	if !database.IsValidName(characterName) {
-		//  Call AlertMsg(Index, "Character already exists!")
+		player.SendAlert("Invalid character name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 

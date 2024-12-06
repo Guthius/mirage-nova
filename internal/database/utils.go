@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"log"
 	"os"
+	"unicode"
 )
 
 func createFolderIfNotExists(folderName string) {
@@ -51,9 +52,8 @@ func saveToFile(fileName string, v any) error {
 }
 
 func IsValidName(name string) bool {
-	bytes := []byte(name)
-	for _, b := range bytes {
-		if b < 48 || b > 122 {
+	for _, ch := range name {
+		if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) && ch != ' ' && ch != '_' {
 			return false
 		}
 	}

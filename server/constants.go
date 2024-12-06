@@ -20,7 +20,8 @@ const (
 )
 
 const (
-	MinAccountNameLength = 3
-	MaxAccountNameLength = 20
-	MinPasswordLength    = 3
+	MinAccountNameLength   = 3
+	MaxAccountNameLength   = 20
+	MinPasswordLength      = 3
+	MinCharacterNameLength = 3
 )
