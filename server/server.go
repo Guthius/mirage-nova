@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"mirage/internal/database"
+	_ "mirage/internal/logger"
 	"mirage/internal/network"
-	"os"
 	"time"
 )
 
@@ -36,11 +36,6 @@ func HandleClientDisconnected(id int, conn *network.Conn) {
 
 func HandleDataReceived(id int, _ *network.Conn, bytes []byte) {
 	HandleData(GetPlayer(id), bytes)
-}
-
-func init() {
-	log.SetFlags(log.Ltime | log.Lshortfile)
-	log.SetOutput(os.Stdout)
 }
 
 func main() {

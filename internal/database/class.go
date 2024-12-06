@@ -39,6 +39,8 @@ func loadClasses() []Class {
 		log.Fatal(err)
 	}
 
+	log.Printf("Loaded %d classes\n", len(classes))
+
 	return classes
 }
 
