@@ -199,7 +199,7 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 
 	player.Account = account
 
-	for i := 0; i < MaxChars; i++ {
+	for i := 0; i < database.MaxChars; i++ {
 		if i < characterCount {
 			player.Characters[i] = characters[i]
 		} else {
@@ -208,11 +208,15 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 	}
 
 	player.SendCharacters()
-	// Call SendMaxes(Index)
-	// Call SendMapRevs(Index)
+	player.SendMaxes()
+	player.SendMapRevs()
 
 	log.Printf("[%d] %s has logged in from %s\n", player.Id, account.Name, player.Connection.RemoteAddr())
 }
+
+// ::::::::::::::::::::::::::
+// :: Add character packet ::
+// ::::::::::::::::::::::::::
 
 func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 	if !player.IsLoggedIn() {

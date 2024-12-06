@@ -20,3 +20,10 @@ type Stats struct {
 	Speed    int
 	Magic    int
 }
+
+type Equipment struct {
+	Weapon int
+	Armor  int
+	Helmet int
+	Shield int
+}

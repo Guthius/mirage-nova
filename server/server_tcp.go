@@ -17,11 +17,27 @@ func IsAccountLoggedIn(accountName string) bool {
 	return false
 }
 
+func SendDataToAll(bytes []byte) {
+	for _, player := range Players {
+		player.Send(bytes)
+	}
+}
+
+func SendGlobalMessage(message string, color Color) {
+	writer := packet.NewWriter()
+
+	writer.WriteInteger(SGlobalMsg)
+	writer.WriteString(message)
+	writer.WriteByte(byte(color))
+
+	SendDataToAll(writer.Bytes())
+}
+
 func (p *Player) ReportHack(message string) {
 	log.Printf("[%d] Terminating connection with %s (%s)\n", p.Id, p.Connection.RemoteAddr(), message)
 
 	if p.IsPlaying() {
-		// TODO:   Call GlobalMsg(GetPlayerLogin(Index) & "/" & GetPlayerName(Index) & " has been booted for (" & Reason & ")", White)
+		SendGlobalMessage(fmt.Sprintf("%s/%s has been booted (%s)", p.Account.Name, p.Char.Name, message), White)
 	}
 
 	p.SendAlert(fmt.Sprintf("You have lost your connection with %s", GameName))
@@ -73,9 +89,9 @@ func (p *Player) SendNewCharClasses() {
 	for _, class := range database.Classes {
 		writer.WriteString(class.Name)
 		writer.WriteLong(class.Sprite)
-		writer.WriteLong(class.GetMaxVital(database.VitalHP))
-		writer.WriteLong(class.GetMaxVital(database.VitalMP))
-		writer.WriteLong(class.GetMaxVital(database.VitalSP))
+		writer.WriteLong(class.GetMaxVital(database.VitalHP, class.Stats.Strength))
+		writer.WriteLong(class.GetMaxVital(database.VitalMP, class.Stats.Magic))
+		writer.WriteLong(class.GetMaxVital(database.VitalSP, class.Stats.Speed))
 		writer.WriteByte(byte(class.Stats.Strength))
 		writer.WriteByte(byte(class.Stats.Defense))
 		writer.WriteByte(byte(class.Stats.Speed))
@@ -83,4 +99,33 @@ func (p *Player) SendNewCharClasses() {
 	}
 
 	p.Send(writer.Bytes())
+}
+
+func (p *Player) SendMaxes() {
+	writer := packet.NewWriter()
+
+	writer.WriteInteger(SSendMaxes)
+	writer.WriteInteger(MaxPlayers)
+	writer.WriteInteger(database.MaxItems)
+	writer.WriteInteger(database.MaxNpcs)
+	writer.WriteInteger(database.MaxShops)
+	writer.WriteInteger(database.MaxSpells)
+	writer.WriteInteger(database.MaxMaps)
+
+	p.Send(writer.Bytes())
+}
+
+func (p *Player) SendMapRevs() {
+	//     Dim I As Long
+	//     Dim Buffer As clsBuffer
+
+	//     Set Buffer = New clsBuffer
+
+	//     Buffer.PreAllocate (MAX_MAPS * 4) + 2
+	//     Buffer.WriteInteger SMapRevs
+	//     For I = 1 To MAX_MAPS
+	//         Buffer.WriteLong Map(I).Revision
+	//     Next
+
+	// Call SendDataTo(Index, Buffer.ToArray())
 }

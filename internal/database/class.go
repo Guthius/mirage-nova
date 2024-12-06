@@ -42,14 +42,14 @@ func loadClasses() []Class {
 	return classes
 }
 
-func (class *Class) GetMaxVital(Vital VitalType) int {
+func (class *Class) GetMaxVital(Vital VitalType, stat int) int {
 	switch Vital {
 	case VitalHP:
-		return (1 + (class.Stats.Strength / 2) + class.Stats.Strength) * 2
+		return (1 + (stat / 2) + class.Stats.Strength) * 2
 	case VitalMP:
-		return (1 + (class.Stats.Magic / 2) + class.Stats.Magic) * 2
+		return (1 + (stat / 2) + class.Stats.Magic) * 2
 	case VitalSP:
-		return (1 + (class.Stats.Speed / 2) + class.Stats.Speed) * 2
+		return (1 + (stat / 2) + class.Stats.Speed) * 2
 	}
 	return 0
 }

@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"errors"
-	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 )
@@ -12,49 +11,6 @@ type Account struct {
 	Id           int64
 	Name         string
 	PasswordHash string
-}
-
-func openDatabase() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "data/accounts.db")
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-
-func Create() {
-	db, err := openDatabase()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer db.Close()
-
-	Exec := func(query string) {
-		_, err := db.Exec(query)
-		if err != nil {
-			log.Panic(err)
-		}
-	}
-
-	Exec(`CREATE TABLE IF NOT EXISTS accounts (
-    		id INTEGER PRIMARY KEY AUTOINCREMENT,
-    		name TEXT UNIQUE COLLATE NOCASE,
-    		password_hash TEXT
-    	)`)
-
-	Exec(`CREATE TABLE IF NOT EXISTS characters (
-		    id INTEGER PRIMARY KEY AUTOINCREMENT,
-		    account_id INTEGER,
-		    name TEXT UNIQUE COLLATE NOCASE,
-		    gender INTEGER,
-		    class INTEGER,
-		    sprite INTEGER,
-		    level INTEGER,
-		    exp INTEGER,
-		    access INTEGER,
-		    pk INTEGER
-		)`)
 }
 
 func AccountExists(accountName string) bool {

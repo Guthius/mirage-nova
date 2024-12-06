@@ -14,7 +14,7 @@ type Player struct {
 	Connection *network.Conn
 	Account    *database.Account
 	Buffer     []byte
-	Characters [MaxChars]database.Character
+	Characters [database.MaxChars]database.Character
 	Char       *database.Character
 }
 
