@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/gob"
+	"log"
 	"os"
 )
 
@@ -9,13 +10,13 @@ func createFolderIfNotExists(folderName string) {
 	info, err := os.Stat(folderName)
 	if !os.IsNotExist(err) {
 		if !info.IsDir() {
-			Log.Panicf("Unable to create directory '%s', a file with this name already exists", folderName)
+			log.Panicf("Unable to create directory '%s', a file with this name already exists", folderName)
 		}
 		return
 	}
 	err = os.MkdirAll(folderName, 0644)
 	if err != nil {
-		Log.Panic(err)
+		log.Panic(err)
 	}
 }
 
@@ -47,4 +48,14 @@ func saveToFile(fileName string, v any) error {
 	encoder := gob.NewEncoder(file)
 
 	return encoder.Encode(v)
+}
+
+func IsValidName(name string) bool {
+	bytes := []byte(name)
+	for _, b := range bytes {
+		if b < 48 || b > 122 {
+			return false
+		}
+	}
+	return true
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"log"
 )
 
 type NpcBehaviour int
@@ -27,7 +28,11 @@ type Npc struct {
 	Stats         Stats
 }
 
-var Npcs = loadNpcs()
+var Npcs [MaxNpcs]Npc
+
+func init() {
+	Npcs = loadNpcs()
+}
 
 func getNpcFilename(npcId int) string {
 	return fmt.Sprintf("data/npcs/npc%d.gob", npcId+1)
@@ -43,18 +48,18 @@ func loadNpc(npcId int) Npc {
 
 	err := loadFromFile(fileName, &npc)
 	if err != nil {
-		Log.Printf("Error loading npc '%s': %s\n", fileName, err)
+		log.Printf("Error loading npc '%s': %s\n", fileName, err)
 	}
 
 	return npc
 }
 
-func loadNpcs() [MAX_NPCS]Npc {
-	var npcs [MAX_NPCS]Npc
+func loadNpcs() [MaxNpcs]Npc {
+	var npcs [MaxNpcs]Npc
 
 	createFolderIfNotExists("data/npcs")
 
-	for i := 0; i < MAX_NPCS; i++ {
+	for i := 0; i < MaxNpcs; i++ {
 		npcs[i] = loadNpc(i)
 	}
 
@@ -62,7 +67,7 @@ func loadNpcs() [MAX_NPCS]Npc {
 }
 
 func SaveNpc(npcId int) {
-	if npcId < 0 || npcId >= MAX_NPCS {
+	if npcId < 0 || npcId >= MaxNpcs {
 		return
 	}
 
@@ -70,18 +75,18 @@ func SaveNpc(npcId int) {
 
 	err := saveToFile(fileName, &Npcs[npcId])
 	if err != nil {
-		Log.Printf("Error saving npc '%s': %s\n", fileName, err)
+		log.Printf("Error saving npc '%s': %s\n", fileName, err)
 	}
 }
 
 func SaveNpcs() {
-	for i := 0; i < MAX_NPCS; i++ {
+	for i := 0; i < MaxNpcs; i++ {
 		SaveNpc(i)
 	}
 }
 
 func GetNpc(npcId int) *Npc {
-	if npcId < 0 || npcId >= MAX_NPCS {
+	if npcId < 0 || npcId >= MaxNpcs {
 		return nil
 	}
 	return &Npcs[npcId]

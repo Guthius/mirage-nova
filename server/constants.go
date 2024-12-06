@@ -16,11 +16,11 @@ const (
 
 const (
 	MaxPlayers = 100
+	MaxChars   = 3
 )
 
 const (
 	MinAccountNameLength = 3
 	MaxAccountNameLength = 20
 	MinPasswordLength    = 3
-	MaxPasswordLength    = 50
 )

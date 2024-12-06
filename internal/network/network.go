@@ -3,10 +3,7 @@ package network
 import (
 	"log"
 	"net"
-	"os"
 )
-
-var networkLog = log.New(os.Stdout, "[Network] ", log.LstdFlags)
 
 type Config struct {
 	Address              string
@@ -24,14 +21,14 @@ type Network struct {
 	disconnect    chan *Conn
 }
 
-func (net *Network) getAvailableConnectionId() int {
-	if len(net.connectionIds) == 0 {
+func (network *Network) getAvailableConnectionId() int {
+	if len(network.connectionIds) == 0 {
 		return -1
 	}
 
-	id := net.connectionIds[0]
+	id := network.connectionIds[0]
 
-	net.connectionIds = net.connectionIds[1:]
+	network.connectionIds = network.connectionIds[1:]
 
 	return id
 }
@@ -43,7 +40,7 @@ func (network *Network) run() {
 		close(network.connect)
 		close(network.disconnect)
 
-		networkLog.Print("Network subsystem has stopped")
+		log.Println("Network subsystem has stopped")
 	}()
 
 	for {
@@ -87,7 +84,7 @@ func Start(config Config) error {
 		network.connectionIds[i] = i
 	}
 
-	networkLog.Println("Network subsystem has started on", config.Address)
+	log.Println("Network subsystem has started on", config.Address)
 
 	go func() {
 		for {

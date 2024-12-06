@@ -1,16 +1,21 @@
 ﻿package main
 
-import "mirage/internal/network"
+import (
+	"mirage/internal/database"
+	"mirage/internal/network"
+)
 
 const (
 	BufferSize = 4096
 )
 
 type Player struct {
+	Id         int
 	Connection *network.Conn
-	Account    *Account
+	Account    *database.Account
 	Buffer     []byte
-	InGame     bool
+	Characters [MaxChars]database.Character
+	Char       *database.Character
 }
 
 var Players [MaxPlayers]Player
@@ -26,7 +31,11 @@ func (p *Player) Clear() {
 	p.Connection = nil
 	p.Account = nil
 	p.Buffer = make([]byte, 0, BufferSize)
-	p.InGame = false
+	p.Char = nil
+
+	for _, character := range p.Characters {
+		character.Clear()
+	}
 }
 
 func (p *Player) Send(bytes []byte) {
@@ -61,5 +70,5 @@ func (p *Player) IsLoggedIn() bool {
 }
 
 func (p *Player) IsPlaying() bool {
-	return p.IsLoggedIn() && p.InGame
+	return p.IsLoggedIn() && p.Char != nil
 }

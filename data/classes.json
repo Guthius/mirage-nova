@@ -1,0 +1,32 @@
+[
+  {
+    "Name": "Mage",
+    "Sprite": 2,
+    "Stats": {
+      "Strength": 1,
+      "Defense": 2,
+      "Speed": 2,
+      "Magic": 5
+    }
+  },
+  {
+    "Name": "Cleric",
+    "Sprite": 5,
+    "Stats": {
+      "Strength": 2,
+      "Defense": 3,
+      "Speed": 2,
+      "Magic": 3
+    }
+  },
+  {
+    "Name": "Warrior",
+    "Sprite": 9,
+    "Stats": {
+      "Strength": 5,
+      "Defense": 3,
+      "Speed": 2,
+      "Magic": 0
+    }
+  }
+]

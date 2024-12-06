@@ -14,6 +14,10 @@ func (w *Writer) Write(data []byte) {
 	w.buffer = append(w.buffer, data...)
 }
 
+func (w *Writer) WriteByte(value byte) {
+	w.Write([]byte{value})
+}
+
 func (w *Writer) WriteInteger(value int) {
 	w.Write([]byte{byte(value), byte(value >> 8)})
 }

@@ -1,5 +1,5 @@
 package database
 
 const (
-	MAX_NPCS = 255
+	MaxNpcs = 255
 )

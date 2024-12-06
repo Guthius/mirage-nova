@@ -11,9 +11,37 @@ It leverages Go's powerful concurrency model to enable efficient and scalable ne
 
 *TBC*
 
-## Installation
+## Build Instructions
 
-The minimum requirement of Go is 1.23.
+### Clone the repository
+```bash
+git clone https://github.com/Guthius/mirage-nova.git
+cd mirage-nova
+```
+
+### Install Go
+
+Ensure that [Go](https://golang.org/dl/) is installed on your system. The minimum requirement of Go is 1.23.
+
+You can verify the installation by running:
+```bash
+go version
+```
+
+### Build the server
+
+Navigate to the server directory and build the server:
+```bash
+cd server
+go build -o mirage-nova-server
+```
+
+### Run the server
+
+Execute the built server binary:
+```bash
+./mirage-nova-server
+```
 
 ## Legacy
 

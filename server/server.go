@@ -3,20 +3,20 @@ package main
 import (
 	"fmt"
 	"log"
+	"mirage/internal/database"
 	"mirage/internal/network"
 	"os"
 	"time"
 )
 
-var ServerLog = log.New(os.Stdout, "[Server] ", log.LstdFlags)
-var PlayerLog = log.New(os.Stdout, "[Player] ", log.LstdFlags)
 var IsShuttingDown = false
 
 func HandleClientConnected(id int, conn *network.Conn) {
-	ServerLog.Printf("[%d] Client connected from %s\n", id, conn.RemoteAddr())
+	log.Printf("[%d] Client connected from %s\n", id, conn.RemoteAddr())
 
 	player := GetPlayer(id)
 	player.Connection = conn
+	player.Id = id
 
 	if IsBanned(conn.RemoteAddr()) {
 		player.SendAlert(fmt.Sprintf("Your have been banned from %s, and you are no longer able to play.", GameName))
@@ -24,7 +24,7 @@ func HandleClientConnected(id int, conn *network.Conn) {
 }
 
 func HandleClientDisconnected(id int, conn *network.Conn) {
-	ServerLog.Printf("[%d] Connection with %s has been terminated\n", id, conn.RemoteAddr())
+	log.Printf("[%d] Connection with %s has been terminated\n", id, conn.RemoteAddr())
 
 	player := GetPlayer(id)
 	if player.IsPlaying() {
@@ -38,7 +38,14 @@ func HandleDataReceived(id int, _ *network.Conn, bytes []byte) {
 	HandleData(GetPlayer(id), bytes)
 }
 
+func init() {
+	log.SetFlags(log.Ltime | log.Lshortfile)
+	log.SetOutput(os.Stdout)
+}
+
 func main() {
+	database.Create()
+
 	networkConfig := network.Config{
 		Address:              GameAddr,
 		MaxConnections:       MaxPlayers,

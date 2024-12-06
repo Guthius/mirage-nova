@@ -4,13 +4,12 @@
 // ** Packets **
 // *************
 
-// Packets end
 const (
 	_ = iota
-	SAlertMsg
-	SAllChars
-	SLoginOk
-	SNewCharClasses
+	SvpAlert
+	SvpCharacters
+	SvpLoginOk
+	SvpNewCharClasses
 	SClassesData
 	SInGame
 	SPlayerInv
@@ -69,12 +68,12 @@ const (
 
 const (
 	_ = iota
-	CGetClasses
-	CNewAccount
-	CDelAccount
-	cLogin
-	CAddChar
-	CDelChar
+	ClpGetClasses
+	ClpCreateAccount
+	ClpDeleteAccount
+	ClpLogin
+	ClpCreateCharacter
+	ClpDeleteCharacter
 	CUseChar
 	CSayMsg
 	CEmoteMsg

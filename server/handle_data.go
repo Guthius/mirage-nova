@@ -3,6 +3,8 @@
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
+	"mirage/internal/database"
 	"mirage/internal/packet"
 )
 
@@ -11,10 +13,12 @@ type PacketHandler func(player *Player, packet *packet.Reader)
 var PacketHandlers = func() [MaxClientPacketId]PacketHandler {
 	var handlers [MaxClientPacketId]PacketHandler
 
-	handlers[CGetClasses] = HandleGetClasses
-	handlers[CNewAccount] = HandleNewAccount
-	handlers[CDelAccount] = HandleDelAccount
-	handlers[cLogin] = HandleLogin
+	handlers[ClpGetClasses] = HandleGetClasses
+	handlers[ClpCreateAccount] = HandleCreateAccount
+	handlers[ClpDeleteAccount] = HandleDeleteAccount
+	handlers[ClpLogin] = HandleLogin
+	handlers[ClpCreateCharacter] = HandleCreateCharacter
+	handlers[ClpDeleteCharacter] = HandleDeleteCharacter
 
 	return handlers
 }()
@@ -85,7 +89,7 @@ func HandleGetClasses(player *Player, _ *packet.Reader) {
 // :: New account packet ::
 // ::::::::::::::::::::::::
 
-func HandleNewAccount(player *Player, packet *packet.Reader) {
+func HandleCreateAccount(player *Player, packet *packet.Reader) {
 	if player.IsLoggedIn() {
 		return
 	}
@@ -102,27 +106,30 @@ func HandleNewAccount(player *Player, packet *packet.Reader) {
 	}
 
 	// Make sure the password length is valid
-	if len(password) < MinPasswordLength || len(password) > MaxPasswordLength {
-		player.SendAlert(fmt.Sprintf("Your password must be between %d and %d characters long.",
-			MinPasswordLength, MaxPasswordLength))
+	if len(password) < MinPasswordLength {
+		player.SendAlert(fmt.Sprintf("Your password must be between at least %d characters long.", MinPasswordLength))
 		return
 	}
 
 	// Make sure the account name is valid
-	if !IsValidAccountName(accountName) {
+	if !database.IsValidName(accountName) {
 		player.SendAlert("Invalid account name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 
 	// Make sure the account name is not already taken
-	if AccountExists(accountName) {
+	if database.AccountExists(accountName) {
 		player.SendAlert("Sorry, that account name is already taken!")
 		return
 	}
 
-	//Call AddAccount(Index, Name, Password)
+	_, ok := database.CreateAccount(accountName, password)
+	if !ok {
+		player.SendAlert("There was an problem creating your account. Please try again later.")
+		return
+	}
 
-	PlayerLog.Printf("Account %s has been created\n", accountName)
+	log.Printf("[%d] Account '%s' has been created\n", player.Id, accountName)
 
 	player.SendAlert("Your account has been created!")
 }
@@ -131,7 +138,7 @@ func HandleNewAccount(player *Player, packet *packet.Reader) {
 // :: Delete account packet ::
 // :::::::::::::::::::::::::::
 
-func HandleDelAccount(_ *Player, _ *packet.Reader) {
+func HandleDeleteAccount(_ *Player, _ *packet.Reader) {
 	// Not Supported
 }
 
@@ -165,8 +172,8 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 	}
 
 	// Make sure a password was entered
-	if len(password) == 0 {
-		player.SendAlert("Please enter your password.")
+	if len(password) < MinPasswordLength {
+		player.SendAlert(fmt.Sprintf("Your password must be between at least %d characters long.", MinPasswordLength))
 		return
 	}
 
@@ -177,7 +184,7 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 	}
 
 	// Make sure the account exists and the password is correct
-	account := LoadAccount(accountName)
+	account := database.LoadAccount(accountName)
 	if account == nil || !account.IsPasswordCorrect(password) {
 		player.SendAlert("That account name does not exist or the password is incorrect.")
 		return
@@ -189,13 +196,146 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 		return
 	}
 
+	characters := database.LoadCharactersForAccount(account.Id)
+	characterCount := len(characters)
+
 	player.Account = account
 
-	// ' Load the player
-	// Call LoadPlayer(Index, Name)
-	// Call SendChars(Index)
+	for i := 0; i < MaxChars; i++ {
+		if i < characterCount {
+			player.Characters[i] = characters[i]
+		} else {
+			player.Characters[i].Clear()
+		}
+	}
+
+	player.SendCharacters()
 	// Call SendMaxes(Index)
 	// Call SendMapRevs(Index)
 
-	PlayerLog.Printf("[%s] has logged in from %s\n", accountName, player.Connection.RemoteAddr())
+	log.Printf("[%d] %s has logged in from %s\n", player.Id, account.Name, player.Connection.RemoteAddr())
 }
+
+func HandleCreateCharacter(player *Player, packet *packet.Reader) {
+	if !player.IsLoggedIn() {
+		return
+	}
+
+	characterName := packet.ReadString()
+	gender := database.CharacterGender(packet.ReadLong())
+	classId := packet.ReadLong() - 1
+	slot := packet.ReadLong() - 1
+
+	if slot < 0 || slot >= len(player.Characters) {
+		player.ReportHack("character slot out of range")
+		return
+	}
+
+	if classId < 0 || classId >= len(database.Classes) {
+		player.ReportHack("class id out of range")
+		return
+	}
+
+	if gender != database.GenderMale && gender != database.GenderFemale {
+		player.ReportHack("invalid gender")
+		return
+	}
+
+	if len(characterName) < 3 {
+		player.SendAlert("Character name must be at least three characters in length.")
+		return
+	}
+
+	character := &player.Characters[slot]
+	if character.Id != 0 {
+		player.SendAlert("Character already exists!")
+		return
+	}
+
+	if !database.IsValidName(characterName) {
+		//  Call AlertMsg(Index, "Character already exists!")
+		return
+	}
+
+	if database.CharacterExists(characterName) {
+		player.SendAlert("Sorry, but that name is in use!")
+		return
+	}
+
+	_, ok := database.CreateCharacter(player.Account.Id, characterName, gender, classId)
+	if !ok {
+		player.SendAlert("There was an problem creating the character. Please try again later.")
+		return
+	}
+
+	log.Printf("[%d] Character '%s' has been created by '%s' from %s\n",
+		player.Id,
+		characterName,
+		player.Account.Name,
+		player.Connection.RemoteAddr())
+
+	player.SendAlert("Character has been created!")
+}
+
+func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
+	if !player.IsLoggedIn() {
+		return
+	}
+
+	slot := packet.ReadLong() - 1
+	if slot < 0 || slot >= len(player.Characters) {
+		return
+	}
+
+	character := &player.Characters[slot]
+	if character.Id == 0 {
+		player.SendAlert("There is no character in this slot.")
+		return
+	}
+
+	character.Delete()
+
+	log.Printf("[%d] Character '%s' has been deleted by '%s' from %s\n",
+		player.Id,
+		character.Name,
+		player.Account.Name,
+		player.Connection.RemoteAddr())
+
+	player.SendAlert("Character has been deleted!")
+}
+
+// ' ::::::::::::::::::::::::::::
+// ' :: Using character packet ::
+// ' ::::::::::::::::::::::::::::
+// Private Sub HandleUseChar(ByVal Index As Long, ByRef Data() As Byte, ByVal StartAddr As Long, ByVal ExtraVar As Long)
+//     Dim CharNum As Long
+//     Dim F As Long
+//     Dim Buffer As clsBuffer
+
+//     If Not IsPlaying(Index) Then
+//         Set Buffer = New clsBuffer
+
+//         Buffer.WriteBytes Data()
+
+//         CharNum = Buffer.ReadLong
+
+//         ' Prevent hacking
+//         If CharNum < 1 Or CharNum > MAX_CHARS Then
+//             Call HackingAttempt(Index, "Invalid CharNum")
+//             Exit Sub
+//         End If
+
+//         ' Check to make sure the character exists and if so, set it as its current char
+//         If CharExist(Index, CharNum) Then
+//             TempPlayer(Index).CharNum = CharNum
+//             Call JoinGame(Index)
+
+//             CharNum = TempPlayer(Index).CharNum
+//             Call AddLog(GetPlayerLogin(Index) & "/" & GetPlayerName(Index) & " has began playing " & GAME_NAME & ".", PLAYER_LOG)
+//             Call TextAdd(GetPlayerLogin(Index) & "/" & GetPlayerName(Index) & " has began playing " & GAME_NAME & ".")
+//             Call UpdateCaption
+//         Else
+//             Call AlertMsg(Index, "Character does not exist!")
+//         End If
+//     End If
+// End Sub

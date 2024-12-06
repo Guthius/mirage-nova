@@ -1,16 +1,44 @@
 ﻿package database
 
+import (
+	"encoding/json"
+	"io"
+	"log"
+	"os"
+)
+
 type Class struct {
 	Name   string
 	Sprite int
 	Stats  Stats
 }
 
-var Classes = loadClasses()
+var Classes []Class
+
+func init() {
+	Classes = loadClasses()
+}
 
 func loadClasses() []Class {
-	// TODO: Implement me
-	classes := make([]Class, 0)
+	file, err := os.OpenFile("data/classes.json", os.O_RDONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var classes []Class
+
+	err = json.Unmarshal(bytes, &classes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return classes
 }
 

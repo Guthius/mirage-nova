@@ -29,3 +29,7 @@ VB6/
 
 # GoLand files
 .idea/
+
+# Server Data
+data/npcs/
+data/*.db
