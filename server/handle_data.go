@@ -202,9 +202,9 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 
 	for i := 0; i < database.MaxChars; i++ {
 		if i < characterCount {
-			player.Characters[i] = characters[i]
+			player.CharacterList[i] = characters[i]
 		} else {
-			player.Characters[i].Clear()
+			player.CharacterList[i].Clear()
 		}
 	}
 
@@ -229,7 +229,7 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 	classId := packet.ReadLong() - 1
 	slot := packet.ReadLong() - 1
 
-	if slot < 0 || slot >= len(player.Characters) {
+	if slot < 0 || slot >= len(player.CharacterList) {
 		player.ReportHack("character slot out of range")
 		return
 	}
@@ -249,7 +249,7 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 		return
 	}
 
-	character := &player.Characters[slot]
+	character := &player.CharacterList[slot]
 	if character.Id != 0 {
 		player.SendAlert("Character already exists!")
 		return
@@ -286,11 +286,11 @@ func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
 	}
 
 	slot := packet.ReadLong() - 1
-	if slot < 0 || slot >= len(player.Characters) {
+	if slot < 0 || slot >= len(player.CharacterList) {
 		return
 	}
 
-	character := &player.Characters[slot]
+	character := &player.CharacterList[slot]
 	if character.Id == 0 {
 		player.SendAlert("There is no character in this slot.")
 		return
@@ -312,21 +312,21 @@ func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
 // ::::::::::::::::::::::::::::
 
 func HandleSelectCharacter(player *Player, packet *packet.Reader) {
-	if !player.IsLoggedIn() || player.Char != nil {
+	if !player.IsLoggedIn() || player.Character != nil {
 		return
 	}
 
 	slot := packet.ReadLong() - 1
-	if slot < 0 || slot >= len(player.Characters) {
+	if slot < 0 || slot >= len(player.CharacterList) {
 		player.ReportHack("character slot out of range")
 	}
 
-	if player.Characters[slot].Id == 0 {
+	if player.CharacterList[slot].Id == 0 {
 		player.SendAlert("character does not exist")
 	}
 
-	player.Char = &player.Characters[slot]
+	player.Character = &player.CharacterList[slot]
 	player.JoinGame()
 
-	log.Printf("%s/%s has began playing %s\n", player.Account.Name, player.Char.Name, GameName)
+	log.Printf("%s/%s started playing\n", player.Account.Name, player.Character.Name)
 }

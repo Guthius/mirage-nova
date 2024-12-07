@@ -23,48 +23,48 @@ func SendDataToAll(bytes []byte) {
 	}
 }
 
-func (p *Player) SendWelcome() {
-	p.SendMessage("Type /help for help on commands.  Use arrow keys to move, hold down shift to run, and use ctrl to attack.", Cyan)
+func (player *Player) SendWelcome() {
+	player.SendMessage("Type /help for help on commands.  Use arrow keys to move, hold down shift to run, and use ctrl to attack.", Cyan)
 
 	if len(Motd) > 0 {
-		p.SendMessage(fmt.Sprintf("MOTD: %s", Motd), BrightCyan)
+		player.SendMessage(fmt.Sprintf("MOTD: %s", Motd), BrightCyan)
 	}
 
-	p.SendPlayersOnline()
+	player.SendPlayersOnline()
 }
 
-func (p *Player) SendPlayersOnline() {
+func (player *Player) SendPlayersOnline() {
 
 	names := make([]string, 0, MaxPlayers)
 	for i := 0; i < MaxPlayers; i++ {
-		if i == p.Id {
+		if i == player.Id {
 			continue
 		}
 
 		if Players[i].IsPlaying() {
-			names = append(names, Players[i].Char.Name)
+			names = append(names, Players[i].Character.Name)
 		}
 	}
 
 	if len(names) == 0 {
-		p.SendMessage("There are no other players online.", WhoColor)
+		player.SendMessage("There are no other players online.", WhoColor)
 		return
 	}
 
-	p.SendMessage(fmt.Sprintf("There are %d other players online: %s.", len(names), strings.Join(names, ", ")), WhoColor)
+	player.SendMessage(fmt.Sprintf("There are %d other players online: %s.", len(names), strings.Join(names, ", ")), WhoColor)
 }
 
-func (p *Player) ReportHack(message string) {
-	log.Printf("[%d] Terminating connection with %s (%s)\n", p.Id, p.Connection.RemoteAddr(), message)
+func (player *Player) ReportHack(reason string) {
+	log.Printf("[%d] Terminating connection with %s (%s)\n", player.Id, player.Connection.RemoteAddr(), reason)
 
-	if p.IsPlaying() {
-		SendGlobalMessage(fmt.Sprintf("%s/%s has been booted (%s)", p.Account.Name, p.Char.Name, message), White)
+	if player.IsPlaying() {
+		SendGlobalMessage(fmt.Sprintf("%s has been booted", player.Character.Name), White)
 	}
 
-	p.SendAlert(fmt.Sprintf("You have lost your connection with %s", GameName))
+	player.SendAlert(fmt.Sprintf("You have lost your connection with %s", GameName))
 }
 
-func (p *Player) SendAlert(message string) {
+func (player *Player) SendAlert(message string) {
 	if len(message) == 0 {
 		return
 	}
@@ -74,33 +74,33 @@ func (p *Player) SendAlert(message string) {
 	writer.WriteInteger(SvAlert)
 	writer.WriteString(message)
 
-	p.Send(writer.Bytes())
-	p.Disconnect()
+	player.Send(writer.Bytes())
+	player.Disconnect()
 }
 
-func (p *Player) SendCharacters() {
+func (player *Player) SendCharacters() {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvCharacters)
 
-	for _, c := range p.Characters {
+	for _, c := range player.CharacterList {
 		writer.WriteLong(c.Sprite)
 		writer.WriteString(c.Name)
 		writer.WriteByte(byte(c.Level))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendLoginOk() {
+func (player *Player) SendLoginOk() {
 	writer := packet.NewWriter()
 	writer.WriteInteger(SvLoginOk)
-	writer.WriteLong(p.Id)
+	writer.WriteLong(player.Id)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendNewCharClasses() {
+func (player *Player) SendNewCharClasses() {
 	writer := packet.NewWriter()
 
 	numberOfClasses := len(database.Classes)
@@ -120,10 +120,10 @@ func (p *Player) SendNewCharClasses() {
 		writer.WriteByte(byte(class.Stats.Magic))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendClasses() {
+func (player *Player) SendClasses() {
 	writer := packet.NewWriter()
 
 	numberOfClasses := len(database.Classes)
@@ -143,19 +143,19 @@ func (p *Player) SendClasses() {
 		writer.WriteByte(byte(class.Stats.Magic))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendInGame() {
+func (player *Player) SendInGame() {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvInGame)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendInventory() {
-	if p.Char == nil {
+func (player *Player) SendInventory() {
+	if player.Character == nil {
 		return
 	}
 
@@ -164,31 +164,31 @@ func (p *Player) SendInventory() {
 	writer.WriteInteger(SvPlayerInventory)
 
 	for i := 0; i < database.MaxInventory; i++ {
-		writer.WriteLong(p.Char.Inv[i].Item + 1)
-		writer.WriteLong(p.Char.Inv[i].Value)
-		writer.WriteLong(p.Char.Inv[i].Dur)
+		writer.WriteLong(player.Character.Inv[i].Item + 1)
+		writer.WriteLong(player.Character.Inv[i].Value)
+		writer.WriteLong(player.Character.Inv[i].Dur)
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendEquipment() {
-	if p.Char == nil {
+func (player *Player) SendEquipment() {
+	if player.Character == nil {
 		return
 	}
 
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvPlayerEquipment)
-	writer.WriteByte(byte(p.Char.Equipment.Weapon + 1))
-	writer.WriteByte(byte(p.Char.Equipment.Armor + 1))
-	writer.WriteByte(byte(p.Char.Equipment.Helmet + 1))
-	writer.WriteByte(byte(p.Char.Equipment.Shield + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Weapon + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Armor + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Helmet + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Shield + 1))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendVital(vital database.VitalType) {
+func (player *Player) SendVital(vital database.VitalType) {
 	writer := packet.NewWriter()
 
 	switch vital {
@@ -202,25 +202,25 @@ func (p *Player) SendVital(vital database.VitalType) {
 		return
 	}
 
-	writer.WriteLong(p.GetMaxVital(vital))
-	writer.WriteLong(p.GetVital(vital))
+	writer.WriteLong(player.GetMaxVital(vital))
+	writer.WriteLong(player.GetVital(vital))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendStats() {
+func (player *Player) SendStats() {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvPlayerStats)
-	writer.WriteLong(p.Char.Stats.Strength)
-	writer.WriteLong(p.Char.Stats.Defense)
-	writer.WriteLong(p.Char.Stats.Speed)
-	writer.WriteLong(p.Char.Stats.Magic)
+	writer.WriteLong(player.Character.Stats.Strength)
+	writer.WriteLong(player.Character.Stats.Defense)
+	writer.WriteLong(player.Character.Stats.Speed)
+	writer.WriteLong(player.Character.Stats.Magic)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendCheckForMap(mapId int) {
+func (player *Player) SendCheckForMap(mapId int) {
 	mapData := database.GetMap(mapId)
 	if mapData == nil {
 		return
@@ -232,7 +232,7 @@ func (p *Player) SendCheckForMap(mapId int) {
 	writer.WriteLong(mapId + 1)
 	writer.WriteLong(mapData.Revision)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendGlobalMessage(message string, color Color) {
@@ -245,27 +245,27 @@ func SendGlobalMessage(message string, color Color) {
 	SendDataToAll(writer.Bytes())
 }
 
-func (p *Player) SendMessage(message string, color Color) {
+func (player *Player) SendMessage(message string, color Color) {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvPlayerMessage)
 	writer.WriteString(message)
 	writer.WriteByte(byte(color))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendItems() {
+func (player *Player) SendItems() {
 	for i := 0; i < database.MaxItems; i++ {
 		if len(database.Items[i].Name) == 0 {
 			continue
 		}
 
-		p.SendUpdateItem(i)
+		player.SendUpdateItem(i)
 	}
 }
 
-func (p *Player) SendUpdateItem(itemId int) {
+func (player *Player) SendUpdateItem(itemId int) {
 	if itemId < 0 || itemId >= database.MaxItems {
 		return
 	}
@@ -286,7 +286,7 @@ func (p *Player) SendUpdateItem(itemId int) {
 	writer.WriteInteger(item.Data2)
 	writer.WriteInteger(item.Data3)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateItemToAll(itemId int) {
@@ -313,17 +313,17 @@ func SendUpdateItemToAll(itemId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func (p *Player) SendNpcs() {
+func (player *Player) SendNpcs() {
 	for i := 0; i < database.MaxNpcs; i++ {
 		if len(database.Npcs[i].Name) == 0 {
 			continue
 		}
 
-		p.SendUpdateNpc(i)
+		player.SendUpdateNpc(i)
 	}
 }
 
-func (p *Player) SendUpdateNpc(npcId int) {
+func (player *Player) SendUpdateNpc(npcId int) {
 	if npcId < 0 || npcId >= database.MaxNpcs {
 		return
 	}
@@ -340,10 +340,10 @@ func (p *Player) SendUpdateNpc(npcId int) {
 	writer.WriteString(npc.Name)
 	writer.WriteInteger(npc.Sprite)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendUpdateNpcToAll(npcId int) {
+func (player *Player) SendUpdateNpcToAll(npcId int) {
 	if npcId < 0 || npcId >= database.MaxNpcs {
 		return
 	}
@@ -360,17 +360,17 @@ func (p *Player) SendUpdateNpcToAll(npcId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func (p *Player) SendShops() {
+func (player *Player) SendShops() {
 	for i := 0; i < database.MaxShops; i++ {
 		if len(database.Shops[i].Name) == 0 {
 			continue
 		}
 
-		p.SendUpdateShop(i)
+		player.SendUpdateShop(i)
 	}
 }
 
-func (p *Player) SendUpdateShop(shopId int) {
+func (player *Player) SendUpdateShop(shopId int) {
 	if shopId < 0 || shopId >= database.MaxShops {
 		return
 	}
@@ -386,7 +386,7 @@ func (p *Player) SendUpdateShop(shopId int) {
 	writer.WriteLong(shopId + 1)
 	writer.WriteString(shop.Name)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateShopToAll(shopId int) {
@@ -408,17 +408,17 @@ func SendUpdateShopToAll(shopId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func (p *Player) SendSpells() {
+func (player *Player) SendSpells() {
 	for i := 0; i < database.MaxSpells; i++ {
 		if len(database.Spells[i].Name) == 0 {
 			continue
 		}
 
-		p.SendUpdateSpell(i)
+		player.SendUpdateSpell(i)
 	}
 }
 
-func (p *Player) SendUpdateSpell(spellId int) {
+func (player *Player) SendUpdateSpell(spellId int) {
 	if spellId < 0 || spellId >= database.MaxSpells {
 		return
 	}
@@ -433,7 +433,7 @@ func (p *Player) SendUpdateSpell(spellId int) {
 	writer.WriteInteger(spell.MPReq)
 	writer.WriteInteger(spell.Pic)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateSpellToAll(spellId int) {
@@ -454,7 +454,7 @@ func SendUpdateSpellToAll(spellId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func (p *Player) SendLimits() {
+func (player *Player) SendLimits() {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvLimits)
@@ -465,10 +465,10 @@ func (p *Player) SendLimits() {
 	writer.WriteInteger(database.MaxSpells)
 	writer.WriteInteger(database.MaxMaps)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func (p *Player) SendMapRevisions() {
+func (player *Player) SendMapRevisions() {
 	writer := packet.NewWriter()
 
 	writer.WriteInteger(SvMapRevisions)
@@ -476,5 +476,5 @@ func (p *Player) SendMapRevisions() {
 		writer.WriteLong(database.Maps[i].Revision)
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }

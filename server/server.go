@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"mirage/internal/database"
 	_ "mirage/internal/logger"
 	"mirage/internal/network"
+	"os"
 	"time"
 )
 
@@ -21,7 +23,7 @@ func HandleClientConnected(id int, conn *network.Conn) {
 	player.Id = id
 
 	if IsBanned(conn.RemoteAddr()) {
-		player.SendAlert(fmt.Sprintf("Your have been banned from %s, and you are no longer able to play.", GameName))
+		player.SendAlert(fmt.Sprintf("You have been banned from %s, and you are no longer able to play.", GameName))
 	}
 }
 
@@ -40,6 +42,26 @@ func HandleDataReceived(id int, _ *network.Conn, bytes []byte) {
 	HandleData(GetPlayer(id), bytes)
 }
 
+func LoadMotd() {
+	file, err := os.Open("motd.txt")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+		log.Printf("error loading motd (%s)", err)
+	}
+
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Printf("error loading motd (%s)", err)
+		return
+	}
+
+	Motd = string(bytes)
+}
+
 func main() {
 	database.Create()
 
@@ -50,6 +72,8 @@ func main() {
 		OnClientDisconnected: HandleClientDisconnected,
 		OnDataReceived:       HandleDataReceived,
 	}
+
+	LoadMotd()
 
 	err := network.Start(networkConfig)
 	if err != nil {

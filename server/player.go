@@ -18,15 +18,15 @@ const (
 )
 
 type Player struct {
-	Id         int
-	Connection *network.Conn
-	Account    *database.Account
-	Buffer     []byte
-	Characters [database.MaxChars]database.Character
-	Char       *database.Character
-	TargetType TargetType
-	Target     int
-	GettingMap bool
+	Id            int
+	Connection    *network.Conn
+	Account       *database.Account
+	Buffer        []byte
+	CharacterList [database.MaxChars]database.Character
+	Character     *database.Character
+	TargetType    TargetType
+	Target        int
+	GettingMap    bool
 }
 
 var Players [MaxPlayers]Player
@@ -38,22 +38,22 @@ func GetPlayer(index int) *Player {
 	return &Players[index]
 }
 
-func (p *Player) Clear() {
-	p.Connection = nil
-	p.Account = nil
-	p.Buffer = make([]byte, 0, BufferSize)
-	p.Char = nil
-	p.TargetType = TargetNone
-	p.Target = -1
-	p.GettingMap = false
+func (player *Player) Clear() {
+	player.Connection = nil
+	player.Account = nil
+	player.Buffer = make([]byte, 0, BufferSize)
+	player.Character = nil
+	player.TargetType = TargetNone
+	player.Target = -1
+	player.GettingMap = false
 
-	for _, character := range p.Characters {
-		character.Clear()
+	for i := 0; i < database.MaxChars; i++ {
+		player.CharacterList[i].Clear()
 	}
 }
 
-func (p *Player) Send(bytes []byte) {
-	if p == nil || p.Connection == nil {
+func (player *Player) Send(bytes []byte) {
+	if player == nil || player.Connection == nil {
 		return
 	}
 
@@ -64,58 +64,58 @@ func (p *Player) Send(bytes []byte) {
 
 	sizeBytes := []byte{byte(size), byte(size >> 8)}
 
-	p.Connection.Send(sizeBytes)
-	p.Connection.Send(bytes)
+	player.Connection.Send(sizeBytes)
+	player.Connection.Send(bytes)
 }
 
-func (p *Player) Disconnect() {
-	if p == nil || p.Connection == nil {
+func (player *Player) Disconnect() {
+	if player == nil || player.Connection == nil {
 		return
 	}
-	p.Connection.Close()
+	player.Connection.Close()
 }
 
-func (p *Player) IsConnected() bool {
-	return p.Connection != nil && p.Connection.State() == network.StateOpen
+func (player *Player) IsConnected() bool {
+	return player.Connection != nil && player.Connection.State() == network.StateOpen
 }
 
-func (p *Player) IsLoggedIn() bool {
-	return p.IsConnected() && p.Account != nil
+func (player *Player) IsLoggedIn() bool {
+	return player.IsConnected() && player.Account != nil
 }
 
-func (p *Player) IsPlaying() bool {
-	return p.IsLoggedIn() && p.Char != nil
+func (player *Player) IsPlaying() bool {
+	return player.IsLoggedIn() && player.Character != nil
 }
 
-func (p *Player) GetMaxVital(vital database.VitalType) int {
-	if p.Char == nil {
+func (player *Player) GetMaxVital(vital database.VitalType) int {
+	if player.Character == nil {
 		return 0
 	}
 
 	switch vital {
 	case database.VitalHP:
-		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Strength)
+		return database.Classes[player.Character.Class].GetMaxVital(vital, player.Character.Stats.Strength)
 	case database.VitalMP:
-		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Magic)
+		return database.Classes[player.Character.Class].GetMaxVital(vital, player.Character.Stats.Magic)
 	case database.VitalSP:
-		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Speed)
+		return database.Classes[player.Character.Class].GetMaxVital(vital, player.Character.Stats.Speed)
 	}
 
 	return 0
 }
 
-func (p *Player) GetVital(vital database.VitalType) int {
-	if p.Char == nil {
+func (player *Player) GetVital(vital database.VitalType) int {
+	if player.Character == nil {
 		return 0
 	}
 
 	switch vital {
 	case database.VitalHP:
-		return p.Char.Vitals.HP
+		return player.Character.Vitals.HP
 	case database.VitalMP:
-		return p.Char.Vitals.MP
+		return player.Character.Vitals.MP
 	case database.VitalSP:
-		return p.Char.Vitals.SP
+		return player.Character.Vitals.SP
 	}
 
 	return 0

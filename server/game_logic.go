@@ -273,8 +273,8 @@ import (
 //     Next
 // End Function
 
-func (p *Player) JoinGame() {
-	character := p.Char
+func (player *Player) JoinGame() {
+	character := player.Character
 	if character == nil {
 		return
 	}
@@ -290,31 +290,31 @@ func (p *Player) JoinGame() {
 	}
 
 	// Send an ok to client to start receiving in game data
-	p.SendLoginOk()
+	player.SendLoginOk()
 
 	// Send some more little goodies, no need to explain these
-	p.CheckEquippedItems()
+	player.CheckEquippedItems()
 
-	p.SendClasses()
-	p.SendItems()
-	p.SendNpcs()
-	p.SendShops()
-	p.SendSpells()
-	p.SendInventory()
-	p.SendEquipment()
-	p.SendVital(database.VitalHP)
-	p.SendVital(database.VitalMP)
-	p.SendVital(database.VitalSP)
-	p.SendStats()
+	player.SendClasses()
+	player.SendItems()
+	player.SendNpcs()
+	player.SendShops()
+	player.SendSpells()
+	player.SendInventory()
+	player.SendEquipment()
+	player.SendVital(database.VitalHP)
+	player.SendVital(database.VitalMP)
+	player.SendVital(database.VitalSP)
+	player.SendStats()
 
 	// Warp the player to his saved location
-	p.WarpTo(character.Map, character.X, character.Y)
+	player.WarpTo(character.Map, character.X, character.Y)
 
 	// Send welcome messages
-	p.SendWelcome()
+	player.SendWelcome()
 
 	// Send the flag so they know they can start doing stuff
-	p.SendInGame()
+	player.SendInGame()
 }
 
 // Public Sub LeftGame(ByVal Index As Long)
@@ -1470,8 +1470,8 @@ func (p *Player) JoinGame() {
 
 // End Sub
 
-func (p *Player) WarpTo(mapId int, x int, y int) {
-	if !p.IsPlaying() {
+func (player *Player) WarpTo(mapId int, x int, y int) {
+	if !player.IsPlaying() {
 		return
 	}
 
@@ -1480,10 +1480,10 @@ func (p *Player) WarpTo(mapId int, x int, y int) {
 		return
 	}
 
-	p.Target = -1
-	p.TargetType = TargetNone
+	player.Target = -1
+	player.TargetType = TargetNone
 
-	currentMapId := p.Char.Map
+	currentMapId := player.Character.Map
 	currentMap := database.GetMap(currentMapId)
 	if currentMap == nil {
 		return
@@ -1494,23 +1494,23 @@ func (p *Player) WarpTo(mapId int, x int, y int) {
 	// Check if there was a shop on the map the player is leaving, and if so say goodbye
 	shop := database.GetShop(currentMap.Shop)
 	if shop != nil && len(shop.LeaveSay) > 0 {
-		p.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), SayColor)
+		player.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), SayColor)
 	}
 
-	p.Char.Map = mapId
-	p.Char.X = x
-	p.Char.Y = y
+	player.Character.Map = mapId
+	player.Character.X = x
+	player.Character.Y = y
 
 	// Check if there is a shop on the map and say hello if so
 	shop = database.GetShop(currentMap.Shop)
 	if shop != nil && len(shop.JoinSay) > 0 {
-		p.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), SayColor)
+		player.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), SayColor)
 	}
 
 	TempMaps[mapId].PlayerCount++
 
-	p.GettingMap = true
-	p.SendCheckForMap(mapId)
+	player.GettingMap = true
+	player.SendCheckForMap(mapId)
 }
 
 // Public Sub PlayerChangeMap(ByVal Index As Long, ByVal MapNum As Long, ByVal X As Long, ByVal Y As Long)
@@ -1850,8 +1850,8 @@ func (p *Player) WarpTo(mapId int, x int, y int) {
 //     End If
 // End Sub
 
-func (p *Player) CheckEquippedItems() {
-	character := p.Char
+func (player *Player) CheckEquippedItems() {
+	character := player.Character
 	if character == nil {
 		return
 	}
