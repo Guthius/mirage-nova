@@ -1,6 +1,8 @@
 ﻿package main
 
-import "mirage/internal/database"
+import (
+	"github.com/guthius/mirage-nova/server/config"
+)
 
 type TempTile struct {
 	DoorOpen bool
@@ -10,13 +12,13 @@ type TempMap struct {
 	Cache       []byte
 	PlayerCount int
 	DoorTimer   int64
-	Tiles       [database.MaxMapWidth * database.MaxMapHeight]TempTile
+	Tiles       []TempTile
 }
 
-var TempMaps [database.MaxMaps]TempMap
+var TempMaps [config.MaxMaps]TempMap
 
 func init() {
-	for i := 0; i < database.MaxMaps; i++ {
+	for i := 0; i < config.MaxMaps; i++ {
 		TempMaps[i].Cache = nil
 		TempMaps[i].PlayerCount = 0
 		TempMaps[i].DoorTimer = 0

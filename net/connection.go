@@ -1,7 +1,7 @@
-package network
+package net
 
 import (
-	"net"
+	tcp "net"
 )
 
 type ConnState int
@@ -16,16 +16,16 @@ type Conn struct {
 	network    *Network
 	config     *Config
 	connId     int
-	conn       net.Conn
+	conn       tcp.Conn
 	state      ConnState
 	send       chan []byte
 	remoteAddr string
 }
 
-func getRemoteAddr(conn net.Conn) string {
+func getRemoteAddr(conn tcp.Conn) string {
 	hostAndPort := conn.RemoteAddr().String()
 
-	host, _, err := net.SplitHostPort(hostAndPort)
+	host, _, err := tcp.SplitHostPort(hostAndPort)
 	if err != nil {
 		return "unknown"
 	}
@@ -33,7 +33,7 @@ func getRemoteAddr(conn net.Conn) string {
 	return host
 }
 
-func startConnection(network *Network, connId int, conn net.Conn) {
+func startConnection(network *Network, connId int, conn tcp.Conn) {
 	connection := &Conn{
 		network:    network,
 		config:     network.config,
@@ -43,7 +43,7 @@ func startConnection(network *Network, connId int, conn net.Conn) {
 		send:       make(chan []byte),
 		remoteAddr: getRemoteAddr(conn),
 	}
-	
+
 	go connection.doReceive()
 	go connection.doSend()
 

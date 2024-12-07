@@ -1,4 +1,4 @@
-module mirage
+module github.com/guthius/mirage-nova
 
 go 1.23.3
 

@@ -4,18 +4,20 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"mirage/internal/database"
-	"mirage/internal/packet"
+
+	"github.com/guthius/mirage-nova/internal/database"
+	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/config"
+	"github.com/guthius/mirage-nova/server/data"
 )
 
-type PacketHandler func(player *Player, packet *packet.Reader)
+type PacketHandler func(player *PlayerData, packet *net.PacketReader)
 
 var PacketHandlers [MaxClientPacketId]PacketHandler
 
 func init() {
 	PacketHandlers[ClpGetClasses] = HandleGetClasses
 	PacketHandlers[ClpCreateAccount] = HandleCreateAccount
-	PacketHandlers[ClpDeleteAccount] = HandleDeleteAccount
 	PacketHandlers[ClpLogin] = HandleLogin
 	PacketHandlers[ClpCreateCharacter] = HandleCreateCharacter
 	PacketHandlers[ClpDeleteCharacter] = HandleDeleteCharacter
@@ -24,7 +26,7 @@ func init() {
 	PacketHandlers[ClNeedMap] = HandleNeedMap
 }
 
-func HandleData(player *Player, bytes []byte) {
+func HandleData(player *PlayerData, bytes []byte) {
 	player.Buffer = append(player.Buffer, bytes...)
 	if len(player.Buffer) < 2 {
 		return
@@ -42,7 +44,7 @@ func HandleData(player *Player, bytes []byte) {
 		off += 2
 		buf = buf[2:]
 
-		reader := packet.NewReader(buf[:size])
+		reader := net.NewReader(buf[:size])
 		HandlePacket(player, reader)
 
 		off += size
@@ -58,7 +60,7 @@ func HandleData(player *Player, bytes []byte) {
 	player.Buffer = player.Buffer[:bytesLeft]
 }
 
-func HandlePacket(player *Player, reader *packet.Reader) {
+func HandlePacket(player *PlayerData, reader *net.PacketReader) {
 	if reader.Remaining() < 2 {
 		return
 	}
@@ -80,9 +82,9 @@ func HandlePacket(player *Player, reader *packet.Reader) {
 // :: Requesting classes for making a character ::
 // :::::::::::::::::::::::::::::::::::::::::::::::
 
-func HandleGetClasses(player *Player, _ *packet.Reader) {
+func HandleGetClasses(player *PlayerData, _ *net.PacketReader) {
 	if !player.IsPlaying() {
-		player.SendNewCharClasses()
+		SendNewCharClasses(player)
 	}
 }
 
@@ -90,7 +92,7 @@ func HandleGetClasses(player *Player, _ *packet.Reader) {
 // :: New account packet ::
 // ::::::::::::::::::::::::
 
-func HandleCreateAccount(player *Player, packet *packet.Reader) {
+func HandleCreateAccount(player *PlayerData, packet *net.PacketReader) {
 	if player.IsLoggedIn() {
 		return
 	}
@@ -100,54 +102,45 @@ func HandleCreateAccount(player *Player, packet *packet.Reader) {
 	password := packet.ReadString()
 
 	// Make sure the account name length is valid
-	if len(accountName) < MinAccountNameLength || len(accountName) > MaxAccountNameLength {
-		player.SendAlert(fmt.Sprintf("Your account name must be between %d and %d characters long.",
-			MinAccountNameLength, MaxAccountNameLength))
+	if len(accountName) < 3 || len(accountName) > 20 {
+		SendAlert(player, "Your account name must be between 3 and 20 characters long.")
 		return
 	}
 
 	// Make sure the password length is valid
-	if len(password) < MinPasswordLength {
-		player.SendAlert(fmt.Sprintf("Your password must be between at least %d characters long.", MinPasswordLength))
+	if len(password) < 3 {
+		SendAlert(player, "Your password must be between at least 3 characters long.")
 		return
 	}
 
 	// Make sure the account name is valid
 	if !database.IsValidName(accountName) {
-		player.SendAlert("Invalid account name, only letters, numbers, spaces, and _ allowed in names.")
+		SendAlert(player, "Invalid account name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 
 	// Make sure the account name is not already taken
 	if database.AccountExists(accountName) {
-		player.SendAlert("Sorry, that account name is already taken!")
+		SendAlert(player, "Sorry, that account name is already taken!")
 		return
 	}
 
 	_, ok := database.CreateAccount(accountName, password)
 	if !ok {
-		player.SendAlert("There was an problem creating your account. Please try again later.")
+		SendAlert(player, "There was an problem creating your account. Please try again later.")
 		return
 	}
 
 	log.Printf("[%d] Account '%s' has been created\n", player.Id, accountName)
 
-	player.SendAlert("Your account has been created!")
-}
-
-// :::::::::::::::::::::::::::
-// :: Delete account packet ::
-// :::::::::::::::::::::::::::
-
-func HandleDeleteAccount(_ *Player, _ *packet.Reader) {
-	// Not Supported
+	SendAlert(player, "Your account has been created!")
 }
 
 // ::::::::::::::::::
 // :: Login packet ::
 // ::::::::::::::::::
 
-func HandleLogin(player *Player, packet *packet.Reader) {
+func HandleLogin(player *PlayerData, packet *net.PacketReader) {
 	if player.IsLoggedIn() {
 		return
 	}
@@ -157,43 +150,42 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 	password := packet.ReadString()
 
 	// Make sure client version is correct
-	if packet.ReadByte() != VersionMajor || packet.ReadByte() != VersionMinor || packet.ReadByte() != VersionRevision {
-		player.SendAlert(fmt.Sprintf(
+	if packet.ReadByte() != config.VersionMajor || packet.ReadByte() != config.VersionMinor || packet.ReadByte() != config.VersionRevision {
+		SendAlert(player, fmt.Sprintf(
 			"Your client is outdated.\n\n"+
 				"To continue, please update to the latest version.\n\n"+
-				"Download the latest version from %s.", GameWebsite))
+				"Download the latest version from %s.", config.GameWebsite))
 		return
 	}
 
 	// Make sure the account name length is valid
-	if len(accountName) < MinAccountNameLength || len(accountName) > MaxAccountNameLength {
-		player.SendAlert(fmt.Sprintf("Your account name must be between %d and %d characters long.",
-			MinAccountNameLength, MaxAccountNameLength))
+	if len(accountName) < 3 || len(accountName) > 20 {
+		SendAlert(player, "Your account name must be between 3 and 20 characters long.")
 		return
 	}
 
 	// Make sure a password was entered
-	if len(password) < MinPasswordLength {
-		player.SendAlert(fmt.Sprintf("Your password must be between at least %d characters long.", MinPasswordLength))
+	if len(password) < 3 {
+		SendAlert(player, "Your password must be between at least 3 characters long.")
 		return
 	}
 
 	// Do not allow players to login while shutting down
 	if IsShuttingDown {
-		player.SendAlert("The server is currently undergoing maintenance. Please try again later.")
+		SendAlert(player, "The server is currently undergoing maintenance. Please try again later.")
 		return
 	}
 
 	// Make sure the account exists and the password is correct
 	account := database.LoadAccount(accountName)
 	if account == nil || !account.IsPasswordCorrect(password) {
-		player.SendAlert("That account name does not exist or the password is incorrect.")
+		SendAlert(player, "That account name does not exist or the password is incorrect.")
 		return
 	}
 
 	// Make sure the account is not already logged in
 	if IsAccountLoggedIn(accountName) {
-		player.SendAlert("Multiple account logins are not allowed.")
+		SendAlert(player, "Multiple account logins are not allowed.")
 		return
 	}
 
@@ -202,7 +194,7 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 
 	player.Account = account
 
-	for i := 0; i < database.MaxChars; i++ {
+	for i := 0; i < config.MaxChars; i++ {
 		if i < characterCount {
 			player.CharacterList[i] = characters[i]
 		} else {
@@ -210,9 +202,9 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 		}
 	}
 
-	player.SendCharacters()
-	player.SendLimits()
-	player.SendMapRevisions()
+	SendCharacters(player)
+	SendLimits(player)
+	SendMapRevisions(player)
 
 	log.Printf("[%d] %s has logged in from %s\n", player.Id, account.Name, player.Connection.RemoteAddr())
 }
@@ -221,7 +213,7 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 // :: Add character packet ::
 // ::::::::::::::::::::::::::
 
-func HandleCreateCharacter(player *Player, packet *packet.Reader) {
+func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 	if !player.IsLoggedIn() {
 		return
 	}
@@ -232,44 +224,44 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 	slot := packet.ReadLong() - 1
 
 	if slot < 0 || slot >= len(player.CharacterList) {
-		player.ReportHack("character slot out of range")
+		ReportHack(player, "character slot out of range")
 		return
 	}
 
-	if classId < 0 || classId >= len(database.Classes) {
-		player.ReportHack("class id out of range")
+	if classId < 0 || classId >= data.GetClassCount() {
+		ReportHack(player, "class id out of range")
 		return
 	}
 
 	if gender != database.GenderMale && gender != database.GenderFemale {
-		player.ReportHack("invalid gender")
+		ReportHack(player, "invalid gender")
 		return
 	}
 
-	if len(characterName) < MinCharacterNameLength {
-		player.SendAlert(fmt.Sprintf("Character name must be at least %d characters in length.", MinCharacterNameLength))
+	if len(characterName) < 3 {
+		SendAlert(player, "Character name must be at least 3 characters in length.")
 		return
 	}
 
 	character := &player.CharacterList[slot]
 	if character.Id != 0 {
-		player.SendAlert("Character already exists!")
+		SendAlert(player, "Character already exists!")
 		return
 	}
 
 	if !database.IsValidName(characterName) {
-		player.SendAlert("Invalid character name, only letters, numbers, spaces, and _ allowed in names.")
+		SendAlert(player, "Invalid character name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 
 	if database.CharacterExists(characterName) {
-		player.SendAlert("Sorry, but that name is in use!")
+		SendAlert(player, "Sorry, but that name is in use!")
 		return
 	}
 
 	_, ok := database.CreateCharacter(player.Account.Id, characterName, gender, classId)
 	if !ok {
-		player.SendAlert("There was an problem creating the character. Please try again later.")
+		SendAlert(player, "There was an problem creating the character. Please try again later.")
 		return
 	}
 
@@ -279,10 +271,10 @@ func HandleCreateCharacter(player *Player, packet *packet.Reader) {
 		player.Account.Name,
 		player.Connection.RemoteAddr())
 
-	player.SendAlert("Character has been created!")
+	SendAlert(player, "Character has been created!")
 }
 
-func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
+func HandleDeleteCharacter(player *PlayerData, packet *net.PacketReader) {
 	if !player.IsLoggedIn() {
 		return
 	}
@@ -294,7 +286,7 @@ func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
 
 	character := &player.CharacterList[slot]
 	if character.Id == 0 {
-		player.SendAlert("There is no character in this slot.")
+		SendAlert(player, "There is no character in this slot.")
 		return
 	}
 
@@ -306,29 +298,30 @@ func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
 		player.Account.Name,
 		player.Connection.RemoteAddr())
 
-	player.SendAlert("Character has been deleted!")
+	SendAlert(player, "Character has been deleted!")
 }
 
 // ::::::::::::::::::::::::::::
 // :: Using character packet ::
 // ::::::::::::::::::::::::::::
 
-func HandleSelectCharacter(player *Player, packet *packet.Reader) {
+func HandleSelectCharacter(player *PlayerData, packet *net.PacketReader) {
 	if !player.IsLoggedIn() || player.Character != nil {
 		return
 	}
 
 	slot := packet.ReadLong() - 1
 	if slot < 0 || slot >= len(player.CharacterList) {
-		player.ReportHack("character slot out of range")
+		ReportHack(player, "character slot out of range")
 	}
 
 	if player.CharacterList[slot].Id == 0 {
-		player.SendAlert("character does not exist")
+		SendAlert(player, "character does not exist")
 	}
 
 	player.Character = &player.CharacterList[slot]
-	player.JoinGame()
+
+	JoinGame(player)
 
 	log.Printf("[%d] %s(%s) started playing\n",
 		player.Id, player.Account.Name,
@@ -339,20 +332,20 @@ func HandleSelectCharacter(player *Player, packet *packet.Reader) {
 // :: Player request for a new map ::
 // ::::::::::::::::::::::::::::::::::
 
-func HandleRequestNewMap(player *Player, packet *packet.Reader) {
+func HandleRequestNewMap(player *PlayerData, packet *net.PacketReader) {
 	dir := database.Direction(packet.ReadLong())
 	if dir < database.Down || dir >= database.Right {
 		return
 	}
 
-	player.Move(dir, 1)
+	// TODO: player.Move(dir, 1)
 }
 
 // ::::::::::::::::::::::::::::
 // :: Need map yes/no packet ::
 // ::::::::::::::::::::::::::::
 
-func HandleNeedMap(player *Player, reader *packet.Reader) {
+func HandleNeedMap(player *PlayerData, reader *net.PacketReader) {
 	//  Check if map data is needed to be sent
 	needMap := reader.ReadByte()
 	if needMap != 0 {
@@ -367,7 +360,7 @@ func HandleNeedMap(player *Player, reader *packet.Reader) {
 
 	player.GettingMap = false
 
-	writer := packet.NewWriter()
+	writer := net.NewWriter()
 	writer.WriteInteger(SvMapDone)
 
 	player.Send(writer.Bytes())

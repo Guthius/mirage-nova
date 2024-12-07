@@ -4,42 +4,44 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mirage/internal/database"
-	_ "mirage/internal/logger"
-	"mirage/internal/network"
 	"os"
 	"time"
+
+	"github.com/guthius/mirage-nova/internal/database"
+	_ "github.com/guthius/mirage-nova/internal/logger"
+	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/config"
 )
 
 var IsShuttingDown = false
 var Motd = ""
 var PlayersOnline = 0
 
-func HandleClientConnected(id int, conn *network.Conn) {
+func HandleClientConnected(id int, conn *net.Conn) {
 	log.Printf("[%d] Client connected from %s\n", id, conn.RemoteAddr())
 
-	player := GetPlayer(id)
-	player.Connection = conn
-	player.Id = id
+	p := Get(id)
+	p.Connection = conn
+	p.Id = id
 
 	if IsBanned(conn.RemoteAddr()) {
-		player.SendAlert(fmt.Sprintf("You have been banned from %s, and you are no longer able to play.", GameName))
+		SendAlert(p, fmt.Sprintf("You have been banned from %s, and you are no longer able to play.", config.GameName))
 	}
 }
 
-func HandleClientDisconnected(id int, conn *network.Conn) {
+func HandleClientDisconnected(id int, conn *net.Conn) {
 	log.Printf("[%d] Connection with %s has been terminated\n", id, conn.RemoteAddr())
 
-	player := GetPlayer(id)
-	if player.IsPlaying() {
+	pl := Get(id)
+	if pl.IsPlaying() {
 		// TODO: Call LeftGame
 	}
 
-	player.Clear()
+	pl.Clear()
 }
 
-func HandleDataReceived(id int, _ *network.Conn, bytes []byte) {
-	HandleData(GetPlayer(id), bytes)
+func HandleDataReceived(id int, _ *net.Conn, bytes []byte) {
+	HandleData(Get(id), bytes)
 }
 
 func LoadMotd() {
@@ -65,9 +67,9 @@ func LoadMotd() {
 func main() {
 	database.Create()
 
-	networkConfig := network.Config{
-		Address:              GameAddr,
-		MaxConnections:       MaxPlayers,
+	networkConfig := net.Config{
+		Address:              config.GameAddr,
+		MaxConnections:       config.MaxPlayers,
 		OnClientConnected:    HandleClientConnected,
 		OnClientDisconnected: HandleClientDisconnected,
 		OnDataReceived:       HandleDataReceived,
@@ -75,7 +77,7 @@ func main() {
 
 	LoadMotd()
 
-	err := network.Start(networkConfig)
+	err := net.Start(networkConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

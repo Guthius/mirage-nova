@@ -1,8 +1,8 @@
-package network
+package net
 
 import (
 	"log"
-	"net"
+	tcp "net"
 )
 
 type Config struct {
@@ -15,9 +15,9 @@ type Config struct {
 
 type Network struct {
 	config        *Config
-	listen        net.Listener
+	listen        tcp.Listener
 	connectionIds []int
-	connect       chan net.Conn
+	connect       chan tcp.Conn
 	disconnect    chan *Conn
 }
 
@@ -67,7 +67,7 @@ func (network *Network) run() {
 }
 
 func Start(config Config) error {
-	listen, err := net.Listen("tcp", config.Address)
+	listen, err := tcp.Listen("tcp", config.Address)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func Start(config Config) error {
 		config:        &config,
 		listen:        listen,
 		connectionIds: make([]int, config.MaxConnections),
-		connect:       make(chan net.Conn),
+		connect:       make(chan tcp.Conn),
 		disconnect:    make(chan *Conn),
 	}
 

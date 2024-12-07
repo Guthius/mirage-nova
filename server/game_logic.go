@@ -2,7 +2,13 @@
 
 import (
 	"fmt"
-	"mirage/internal/database"
+
+	"github.com/guthius/mirage-nova/internal/database"
+	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/color"
+	"github.com/guthius/mirage-nova/server/config"
+	"github.com/guthius/mirage-nova/server/data"
+	"github.com/guthius/mirage-nova/server/data/vitals"
 )
 
 // Public Sub AttackNpc(ByVal Attacker As Long, ByVal MapNpcNum As Long, ByVal Damage As Long)
@@ -273,8 +279,8 @@ import (
 //     Next
 // End Function
 
-func (player *Player) JoinGame() {
-	character := player.Character
+func JoinGame(p *PlayerData) {
+	character := p.Character
 	if character == nil {
 		return
 	}
@@ -284,37 +290,37 @@ func (player *Player) JoinGame() {
 	// TODO: Call UpdateHighIndex
 
 	if character.Access == database.AccessNone {
-		SendGlobalMessage(fmt.Sprintf("%s has joined %s!", character.Name, GameName), JoinLeftColor)
+		SendGlobalMessage(fmt.Sprintf("%s has joined %s!", character.Name, config.GameName), color.JoinLeftColor)
 	} else {
-		SendGlobalMessage(fmt.Sprintf("%s has joined %s!", character.Name, GameName), White)
+		SendGlobalMessage(fmt.Sprintf("%s has joined %s!", character.Name, config.GameName), color.White)
 	}
 
 	// Send an ok to client to start receiving in game data
-	player.SendLoginOk()
+	SendLoginOk(p)
 
 	// Send some more little goodies, no need to explain these
-	player.CheckEquippedItems()
+	CheckEquippedItems(p)
 
-	player.SendClasses()
-	player.SendItems()
-	player.SendNpcs()
-	player.SendShops()
-	player.SendSpells()
-	player.SendInventory()
-	player.SendEquipment()
-	player.SendVital(database.VitalHP)
-	player.SendVital(database.VitalMP)
-	player.SendVital(database.VitalSP)
-	player.SendStats()
+	SendClasses(p)
+	SendItems(p)
+	SendNpcs(p)
+	SendShops(p)
+	SendSpells(p)
+	SendInventory(p)
+	SendEquipment(p)
+	SendVital(p, vitals.HP)
+	SendVital(p, vitals.MP)
+	SendVital(p, vitals.SP)
+	SendStats(p)
 
 	// Warp the player to his saved location
-	player.WarpTo(character.Map, character.X, character.Y)
+	WarpPlayer(p, character.Map, character.X, character.Y)
 
 	// Send welcome messages
-	player.SendWelcome()
+	SendWelcome(p)
 
 	// Send the flag so they know they can start doing stuff
-	player.SendInGame()
+	SendInGame(p)
 }
 
 // Public Sub LeftGame(ByVal Index As Long)
@@ -1470,47 +1476,47 @@ func (player *Player) JoinGame() {
 
 // End Sub
 
-func (player *Player) WarpTo(mapId int, x int, y int) {
-	if !player.IsPlaying() {
+func WarpPlayer(pl *PlayerData, mapId int, x int, y int) {
+	if !pl.IsPlaying() {
 		return
 	}
 
-	targetMap := database.GetMap(mapId)
+	targetMap := data.GetLevel(mapId)
 	if targetMap == nil {
 		return
 	}
 
-	player.Target = -1
-	player.TargetType = TargetNone
+	pl.Target = -1
+	pl.TargetType = TargetNone
 
-	currentMapId := player.Character.Map
-	currentMap := database.GetMap(currentMapId)
+	currentMapId := pl.Character.Map
+	currentMap := data.GetLevel(currentMapId)
 	if currentMap == nil {
 		return
 	}
 
 	TempMaps[currentMapId].PlayerCount--
 
-	// Check if there was a shop on the map the player is leaving, and if so say goodbye
-	shop := database.GetShop(currentMap.Shop)
+	// Check if there was a shop on the map the pl is leaving, and if so say goodbye
+	shop := data.GetShop(currentMap.Shop)
 	if shop != nil && len(shop.LeaveSay) > 0 {
-		player.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), SayColor)
+		SendMessage(pl, fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), color.SayColor)
 	}
 
-	player.Character.Map = mapId
-	player.Character.X = x
-	player.Character.Y = y
+	pl.Character.Map = mapId
+	pl.Character.X = x
+	pl.Character.Y = y
 
 	// Check if there is a shop on the map and say hello if so
-	shop = database.GetShop(currentMap.Shop)
+	shop = data.GetShop(currentMap.Shop)
 	if shop != nil && len(shop.JoinSay) > 0 {
-		player.SendMessage(fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), SayColor)
+		SendMessage(pl, fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), color.SayColor)
 	}
 
 	TempMaps[mapId].PlayerCount++
 
-	player.GettingMap = true
-	player.SendCheckForMap(mapId)
+	pl.GettingMap = true
+	SendCheckForMap(pl, mapId)
 }
 
 // Public Sub PlayerChangeMap(ByVal Index As Long, ByVal MapNum As Long, ByVal X As Long, ByVal Y As Long)
@@ -1579,78 +1585,72 @@ func (player *Player) WarpTo(mapId int, x int, y int) {
 //     PlayersOnMap(MapNum) = YES
 // End Sub
 
-func (p *Player) Move(dir database.Direction, movement int) {
+func GetAdjacentTile(x int, y int, dir database.Direction) (int, int) {
+	switch dir {
+	case database.Up:
+		return x, y - 1
+	case database.Down:
+		return x, y + 1
+	case database.Left:
+		return x - 1, y
+	case database.Right:
+		return x + 1, y
+	}
+	return x, y
+}
+
+// MoveToLevel moves the player to the level with the specified id.
+func MoveToLevel(p *PlayerData, levelId int, x int, y int) bool {
+	return false
+	//  TODO: PlayerChangeMap(Index, destMapId, destX, destY)
+}
+
+// Move moves the player by a single tile in the specified direction.
+func Move(p *PlayerData, dir database.Direction, movement int) {
 	character := p.Character
 	if character == nil {
 		return
 	}
 
-	currentMap := database.GetMap(character.Map)
-	if currentMap == nil {
+	level := data.GetLevel(character.Map)
+	if level == nil {
 		return
 	}
 
 	character.Dir = dir
 
-	//     Moved = NO
 	moved := false
 
-	destX := character.X
-	destY := character.Y
-	destMapId := -1
+	// Get the destination tile.
+	dx, dy := GetAdjacentTile(character.X, character.Y, character.Dir)
 
-	switch dir {
-	case database.Up:
-		destY--
-		destMapId = currentMap.Up
-	case database.Down:
-		destY++
-		destMapId = currentMap.Down
-	case database.Left:
-		destX--
-		destMapId = currentMap.Left
-	case database.Right:
-		destX++
-		destMapId = currentMap.Right
-	}
-
-	if destX < 0 || destX >= database.MaxMapWidth || destY < 0 || destY >= database.MaxMapHeight {
-		destMap := database.GetMap(destMapId)
-		if destMap != nil {
-			switch dir {
-			case database.Up:
-				destY = database.MaxMapHeight - 1
-			case database.Down:
-				destY = 0
-			case database.Left:
-				destX = database.MaxMapWidth - 1
-			case database.Right:
-				destX = 0
-			}
-
-			//  TODO: PlayerChangeMap(Index, destMapId, destX, destY)
-			moved = true
+	// If the destination tile is out of bounds, try to move to the adjacent level.
+	if !level.Contains(dx, dy) {
+		switch p.Character.Dir {
+		case database.Up:
+			moved = MoveToLevel(p, level.Up, dx, level.Height-1)
+		case database.Down:
+			moved = MoveToLevel(p, level.Down, dx, 0)
+		case database.Left:
+			moved = MoveToLevel(p, level.Left, level.Width-1, dy)
+		case database.Right:
+			moved = MoveToLevel(p, level.Right, 0, dy)
 		}
 	} else {
-		character.X = destX
-		character.Y = destY
+		character.X = dx
+		character.Y = dy
 
-		//                     Set Buffer = New clsBuffer
-		//                     Buffer.PreAllocate 22
-		//                     Buffer.WriteInteger SPlayerMove
-		//                     Buffer.WriteLong Index
-		//                     Buffer.WriteLong GetPlayerX(Index)
-		//                     Buffer.WriteLong GetPlayerY(Index)
-		//                     Buffer.WriteLong GetPlayerDir(Index)
-		//                     Buffer.WriteLong Movement
-		//                     Call SendDataToMapBut(Index, GetPlayerMap(Index), Buffer.ToArray())
+		writer := net.NewWriter()
+		writer.WriteInteger(SPlayerMove)
+		writer.WriteLong(p.Id + 1)
+		writer.WriteLong(dx)
+		writer.WriteLong(dy)
+		writer.WriteLong(int(dir))
+		writer.WriteLong(movement)
+
+		// TODO: SendDataToMapBut(Index, GetPlayerMap(Index), Buffer.ToArray())
 
 		moved = true
-	}
-
-	currentMap = database.GetMap(character.Map)
-	if currentMap == nil {
-		return
 	}
 
 	//     ' Check to see if the tile is a warp tile, and if so warp them
@@ -1788,42 +1788,47 @@ func (p *Player) Move(dir database.Direction, movement int) {
 	//         Call PlayerWarp(Index, GetPlayerMap(Index), GetPlayerX(Index), GetPlayerY(Index))
 	//     End If
 
+	if !moved {
+		WarpPlayer(p, character.Map, character.X, character.Y)
+	}
 }
 
-func (player *Player) CheckEquippedItems() {
-	character := player.Character
+// CheckEquippedItems checks wether the type of the items equipped by the specified player match the slots in which they are equipped.
+// If the item type does not match the slot, the item is removed from that slot.
+func CheckEquippedItems(p *PlayerData) {
+	character := p.Character
 	if character == nil {
 		return
 	}
 
 	CheckSlot := func(itemId int, slot database.EquipmentSlot) int {
-		if itemId < 0 || itemId >= database.MaxItems {
+		if itemId < 0 || itemId >= config.MaxItems {
 			return -1
 		}
 
-		item := database.GetItem(itemId)
+		item := data.GetItem(itemId)
 		if item == nil {
 			return -1
 		}
 
 		switch slot {
 		case database.EquipWeapon:
-			if item.Type != database.ITEM_TYPE_WEAPON {
+			if item.Type != data.ItemWeapon {
 				return -1
 			}
 
 		case database.EquipArmor:
-			if item.Type != database.ITEM_TYPE_ARMOR {
+			if item.Type != data.ItemArmor {
 				return -1
 			}
 
 		case database.EquipHelmet:
-			if item.Type != database.ITEM_TYPE_HELMET {
+			if item.Type != data.ItemHelmet {
 				return -1
 			}
 
 		case database.EquipShield:
-			if item.Type != database.ITEM_TYPE_SHIELD {
+			if item.Type != data.ItemShield {
 				return -1
 			}
 		}

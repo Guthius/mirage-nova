@@ -5,6 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+
+	"github.com/guthius/mirage-nova/server/config"
+	"github.com/guthius/mirage-nova/server/data"
+	"github.com/guthius/mirage-nova/server/data/stats"
+	"github.com/guthius/mirage-nova/server/data/vitals"
 )
 
 type Direction int
@@ -52,12 +57,12 @@ type Character struct {
 	PK          bool
 	Guild       string
 	GuildAccess int
-	Vitals      Vitals
-	Stats       Stats
+	Vitals      vitals.Data
+	Stats       stats.Data
 	Points      int
 	Equipment   Equipment
-	Inv         [MaxInventory]InventorySlot
-	Spells      [MaxCharacterSpells]int
+	Inv         [config.MaxInventory]InventorySlot
+	Spells      [config.MaxCharacterSpells]int
 	Map         int
 	X           int
 	Y           int
@@ -93,10 +98,10 @@ func CharacterExists(characterName string) bool {
 	return count == 1
 }
 
-func decodeInventoryFromJson(inventoryJson string) [MaxInventory]InventorySlot {
-	var slots [MaxInventory]InventorySlot
+func decodeInventoryFromJson(inventoryJson string) [config.MaxInventory]InventorySlot {
+	var slots [config.MaxInventory]InventorySlot
 
-	for i := 0; i < MaxInventory; i++ {
+	for i := 0; i < config.MaxInventory; i++ {
 		slots[i].Item = -1
 		slots[i].Value = 0
 		slots[i].Dur = 0
@@ -111,8 +116,8 @@ func decodeInventoryFromJson(inventoryJson string) [MaxInventory]InventorySlot {
 	return slots
 }
 
-func decodeSpellsFromJson(spellsJson string) [MaxCharacterSpells]int {
-	var spells [MaxCharacterSpells]int
+func decodeSpellsFromJson(spellsJson string) [config.MaxCharacterSpells]int {
+	var spells [config.MaxCharacterSpells]int
 
 	err := json.Unmarshal([]byte(spellsJson), &spells)
 	if err != nil {
@@ -214,8 +219,8 @@ func (c *Character) Clear() {
 	c.PK = false
 	c.Guild = ""
 	c.GuildAccess = 0
-	c.Vitals = Vitals{}
-	c.Stats = Stats{}
+	c.Vitals = vitals.Data{}
+	c.Stats = stats.Data{}
 	c.Equipment.Weapon = -1
 	c.Equipment.Armor = -1
 	c.Equipment.Helmet = -1
@@ -230,7 +235,7 @@ func (c *Character) Clear() {
 }
 
 func (c *Character) ClearInventory() {
-	for i := 0; i < MaxInventory; i++ {
+	for i := 0; i < config.MaxInventory; i++ {
 		c.Inv[i].Item = -1
 		c.Inv[i].Value = 0
 		c.Inv[i].Dur = 0
@@ -238,12 +243,12 @@ func (c *Character) ClearInventory() {
 }
 
 func (c *Character) ClearSpells() {
-	for i := 0; i < MaxCharacterSpells; i++ {
+	for i := 0; i < config.MaxCharacterSpells; i++ {
 		c.Spells[i] = -1
 	}
 }
 
-func encodeInventoryAsJson(inventory [MaxInventory]InventorySlot) string {
+func encodeInventoryAsJson(inventory [config.MaxInventory]InventorySlot) string {
 	bytes, err := json.Marshal(inventory)
 	if err != nil {
 		log.Printf("error encoding inventory (%s)\n", err)
@@ -253,7 +258,7 @@ func encodeInventoryAsJson(inventory [MaxInventory]InventorySlot) string {
 	return string(bytes)
 }
 
-func encodeSpellsAsJson(spells [MaxCharacterSpells]int) string {
+func encodeSpellsAsJson(spells [config.MaxCharacterSpells]int) string {
 	bytes, err := json.Marshal(spells)
 	if err != nil {
 		log.Printf("error encoding spells (%s)\n", err)
@@ -339,11 +344,7 @@ func (c *Character) Save() bool {
 		c.Y,
 		c.Dir)
 
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func (c *Character) Delete() bool {
@@ -379,7 +380,10 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		return nil, false
 	}
 
-	class := &Classes[classId]
+	class := data.GetClass(classId)
+	if class == nil {
+		return nil, false
+	}
 
 	character := &Character{
 		AccountId: accountId,
@@ -396,13 +400,13 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		Y:         StartY,
 		Dir:       Down,
 
-		Vitals: Vitals{
-			HP: class.GetMaxVital(VitalHP, class.Stats.Strength),
-			MP: class.GetMaxVital(VitalMP, class.Stats.Magic),
-			SP: class.GetMaxVital(VitalSP, class.Stats.Speed),
+		Vitals: vitals.Data{
+			HP: class.GetMaxVital(vitals.HP, class.Stats.Strength),
+			MP: class.GetMaxVital(vitals.MP, class.Stats.Magic),
+			SP: class.GetMaxVital(vitals.SP, class.Stats.Speed),
 		},
 
-		Stats: Stats{
+		Stats: stats.Data{
 			Strength: class.Stats.Strength,
 			Defense:  class.Stats.Defense,
 			Speed:    class.Stats.Speed,

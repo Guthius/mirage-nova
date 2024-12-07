@@ -1,55 +1,66 @@
 ﻿package main
 
 import (
-	"mirage/internal/database"
-	"mirage/internal/packet"
+	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/config"
 )
 
 type Level struct {
-	Data    *database.Map
-	Players []*Player
+	Id      int
+	Data    *LevelData
+	Players []*PlayerData
+}
+
+var Levels [config.MaxMaps]Level
+
+func init() {
+	for i := 0; i < len(Levels); i++ {
+		Levels[i] = Level{
+			Id:      i + 1,
+			Data:    &LevelData{},
+			Players: make([]*PlayerData, config.MaxPlayers),
+		}
+	}
 }
 
 // Send a packet with the specified bytes to all players on the level
 func (level *Level) Send(bytes []byte) {
-	for i := 0; i < len(level.Players); i++ {
-		player := level.Players[i]
-		player.Send(bytes)
+	for _, p := range level.Players {
+		p.Send(bytes)
 	}
 }
 
-// AddPlayer adds the specified Player to the level
-func (level *Level) AddPlayer(player *Player) {
+// AddPlayer adds the player to the level
+func (level *Level) AddPlayer(p *PlayerData) {
 	for _, other := range level.Players {
-		if other == player {
+		if other == p {
 			return
 		}
-
 		playerData := getPlayerDataPacket(other)
-		player.Send(playerData)
+		p.Send(playerData)
 	}
 
-	level.Players = append(level.Players, player)
+	level.Players = append(level.Players, p)
 
-	playerData := getPlayerDataPacket(player)
+	playerData := getPlayerDataPacket(p)
 	for _, other := range level.Players {
 		other.Send(playerData)
 	}
 }
 
 // RemovePlayer removes the specified Player from the level
-func (level *Level) RemovePlayer(player *Player) {
+func (level *Level) RemovePlayer(p *PlayerData) {
 	for i := 0; i < len(level.Players); i++ {
-		if level.Players[i] != player {
+		if level.Players[i] != p {
 			continue
 		}
 		level.Players = append(level.Players[:i], level.Players[i+1:]...)
 		return
 	}
 
-	writer := packet.NewWriter()
+	writer := net.NewWriter()
 	writer.WriteInteger(SvLeft)
-	writer.WriteLong(player.Id + 1)
+	writer.WriteLong(p.Id + 1)
 
 	// Notify the remaining players that the specified player has left
 	for _, other := range level.Players {
@@ -57,6 +68,6 @@ func (level *Level) RemovePlayer(player *Player) {
 	}
 }
 
-func getPlayerDataPacket(player *Player) []byte {
+func getPlayerDataPacket(pl *PlayerData) []byte {
 	return nil
 }
