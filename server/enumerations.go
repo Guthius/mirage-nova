@@ -31,7 +31,7 @@ const (
 	SMapData
 	SMapItemData
 	SMapNpcData
-	SMapDone
+	SvMapDone
 	SSayMsg
 	SvGlobalMessage
 	SAdminMsg
@@ -57,7 +57,7 @@ const (
 	SEditSpell
 	STrade
 	SSpells
-	SLeft
+	SvLeft
 	SHighIndex
 	SCastSpell
 	SDoor
@@ -92,9 +92,9 @@ const (
 	CWarpTo
 	CSetSprite
 	CGetStats
-	CRequestNewMap
+	ClRequestNewMap
 	CMapData
-	CNeedMap
+	ClNeedMap
 	CMapGetItem
 	CMapDropItem
 	CMapRespawn

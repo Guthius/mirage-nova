@@ -24,7 +24,7 @@ func SendDataToAll(bytes []byte) {
 }
 
 func (player *Player) SendWelcome() {
-	player.SendMessage("Type /help for help on commands.  Use arrow keys to move, hold down shift to run, and use ctrl to attack.", Cyan)
+	player.SendMessage("Type /help for help on commands. Use arrow keys to move, hold down shift to run, and use ctrl to attack.", Cyan)
 
 	if len(Motd) > 0 {
 		player.SendMessage(fmt.Sprintf("MOTD: %s", Motd), BrightCyan)
@@ -95,7 +95,7 @@ func (player *Player) SendCharacters() {
 func (player *Player) SendLoginOk() {
 	writer := packet.NewWriter()
 	writer.WriteInteger(SvLoginOk)
-	writer.WriteLong(player.Id)
+	writer.WriteLong(player.Id + 1)
 
 	player.Send(writer.Bytes())
 }

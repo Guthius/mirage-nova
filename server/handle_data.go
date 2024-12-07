@@ -20,6 +20,8 @@ func init() {
 	PacketHandlers[ClpCreateCharacter] = HandleCreateCharacter
 	PacketHandlers[ClpDeleteCharacter] = HandleDeleteCharacter
 	PacketHandlers[ClpSelectCharacter] = HandleSelectCharacter
+	PacketHandlers[ClRequestNewMap] = HandleRequestNewMap
+	PacketHandlers[ClNeedMap] = HandleNeedMap
 }
 
 func HandleData(player *Player, bytes []byte) {
@@ -328,5 +330,47 @@ func HandleSelectCharacter(player *Player, packet *packet.Reader) {
 	player.Character = &player.CharacterList[slot]
 	player.JoinGame()
 
-	log.Printf("%s/%s started playing\n", player.Account.Name, player.Character.Name)
+	log.Printf("[%d] %s(%s) started playing\n",
+		player.Id, player.Account.Name,
+		player.Character.Name)
+}
+
+// ::::::::::::::::::::::::::::::::::
+// :: Player request for a new map ::
+// ::::::::::::::::::::::::::::::::::
+
+func HandleRequestNewMap(player *Player, packet *packet.Reader) {
+	dir := database.Direction(packet.ReadLong())
+	if dir < database.Down || dir >= database.Right {
+		return
+	}
+
+	player.Move(dir, 1)
+}
+
+// ::::::::::::::::::::::::::::
+// :: Need map yes/no packet ::
+// ::::::::::::::::::::::::::::
+
+func HandleNeedMap(player *Player, reader *packet.Reader) {
+	//  Check if map data is needed to be sent
+	needMap := reader.ReadByte()
+	if needMap != 0 {
+		// Call SendMap(Index, GetPlayerMap(Index))
+	}
+
+	// For I = 1 To MAX_MAPS
+	//     Call SendMapItemsTo(Index, I)
+	//     Call SendMapNpcsTo(Index, I)
+	// Next I
+	// Call SendJoinMap(Index)
+
+	player.GettingMap = false
+
+	writer := packet.NewWriter()
+	writer.WriteInteger(SvMapDone)
+
+	player.Send(writer.Bytes())
+
+	//  Call SendDoorData(Index)
 }
