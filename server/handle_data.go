@@ -19,6 +19,7 @@ func init() {
 	PacketHandlers[ClpLogin] = HandleLogin
 	PacketHandlers[ClpCreateCharacter] = HandleCreateCharacter
 	PacketHandlers[ClpDeleteCharacter] = HandleDeleteCharacter
+	PacketHandlers[ClpSelectCharacter] = HandleSelectCharacter
 }
 
 func HandleData(player *Player, bytes []byte) {
@@ -208,8 +209,8 @@ func HandleLogin(player *Player, packet *packet.Reader) {
 	}
 
 	player.SendCharacters()
-	player.SendMaxes()
-	player.SendMapRevs()
+	player.SendLimits()
+	player.SendMapRevisions()
 
 	log.Printf("[%d] %s has logged in from %s\n", player.Id, account.Name, player.Connection.RemoteAddr())
 }
@@ -306,38 +307,26 @@ func HandleDeleteCharacter(player *Player, packet *packet.Reader) {
 	player.SendAlert("Character has been deleted!")
 }
 
-// ' ::::::::::::::::::::::::::::
-// ' :: Using character packet ::
-// ' ::::::::::::::::::::::::::::
-// Private Sub HandleUseChar(ByVal Index As Long, ByRef Data() As Byte, ByVal StartAddr As Long, ByVal ExtraVar As Long)
-//     Dim CharNum As Long
-//     Dim F As Long
-//     Dim Buffer As clsBuffer
+// ::::::::::::::::::::::::::::
+// :: Using character packet ::
+// ::::::::::::::::::::::::::::
 
-//     If Not IsPlaying(Index) Then
-//         Set Buffer = New clsBuffer
+func HandleSelectCharacter(player *Player, packet *packet.Reader) {
+	if !player.IsLoggedIn() || player.Char != nil {
+		return
+	}
 
-//         Buffer.WriteBytes Data()
+	slot := packet.ReadLong() - 1
+	if slot < 0 || slot >= len(player.Characters) {
+		player.ReportHack("character slot out of range")
+	}
 
-//         CharNum = Buffer.ReadLong
+	if player.Characters[slot].Id == 0 {
+		player.SendAlert("character does not exist")
+	}
 
-//         ' Prevent hacking
-//         If CharNum < 1 Or CharNum > MAX_CHARS Then
-//             Call HackingAttempt(Index, "Invalid CharNum")
-//             Exit Sub
-//         End If
+	player.Char = &player.Characters[slot]
+	player.JoinGame()
 
-//         ' Check to make sure the character exists and if so, set it as its current char
-//         If CharExist(Index, CharNum) Then
-//             TempPlayer(Index).CharNum = CharNum
-//             Call JoinGame(Index)
-
-//             CharNum = TempPlayer(Index).CharNum
-//             Call AddLog(GetPlayerLogin(Index) & "/" & GetPlayerName(Index) & " has began playing " & GAME_NAME & ".", PLAYER_LOG)
-//             Call TextAdd(GetPlayerLogin(Index) & "/" & GetPlayerName(Index) & " has began playing " & GAME_NAME & ".")
-//             Call UpdateCaption
-//         Else
-//             Call AlertMsg(Index, "Character does not exist!")
-//         End If
-//     End If
-// End Sub
+	log.Printf("%s/%s has began playing %s\n", player.Account.Name, player.Char.Name, GameName)
+}

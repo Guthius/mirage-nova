@@ -9,6 +9,14 @@ const (
 	BufferSize = 4096
 )
 
+type TargetType int
+
+const (
+	TargetNone TargetType = iota
+	TargetPlayer
+	TargetNpc
+)
+
 type Player struct {
 	Id         int
 	Connection *network.Conn
@@ -16,6 +24,9 @@ type Player struct {
 	Buffer     []byte
 	Characters [database.MaxChars]database.Character
 	Char       *database.Character
+	TargetType TargetType
+	Target     int
+	GettingMap bool
 }
 
 var Players [MaxPlayers]Player
@@ -32,6 +43,9 @@ func (p *Player) Clear() {
 	p.Account = nil
 	p.Buffer = make([]byte, 0, BufferSize)
 	p.Char = nil
+	p.TargetType = TargetNone
+	p.Target = -1
+	p.GettingMap = false
 
 	for _, character := range p.Characters {
 		character.Clear()
@@ -71,4 +85,38 @@ func (p *Player) IsLoggedIn() bool {
 
 func (p *Player) IsPlaying() bool {
 	return p.IsLoggedIn() && p.Char != nil
+}
+
+func (p *Player) GetMaxVital(vital database.VitalType) int {
+	if p.Char == nil {
+		return 0
+	}
+
+	switch vital {
+	case database.VitalHP:
+		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Strength)
+	case database.VitalMP:
+		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Magic)
+	case database.VitalSP:
+		return database.Classes[p.Char.Class].GetMaxVital(vital, p.Char.Stats.Speed)
+	}
+
+	return 0
+}
+
+func (p *Player) GetVital(vital database.VitalType) int {
+	if p.Char == nil {
+		return 0
+	}
+
+	switch vital {
+	case database.VitalHP:
+		return p.Char.Vitals.HP
+	case database.VitalMP:
+		return p.Char.Vitals.MP
+	case database.VitalSP:
+		return p.Char.Vitals.SP
+	}
+
+	return 0
 }

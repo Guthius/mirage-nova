@@ -9,6 +9,7 @@ const (
 	MaxChars           = 3
 	MaxInventory       = 50
 	MaxCharacterSpells = 20
+	MaxTrades          = 8
 )
 
 const (

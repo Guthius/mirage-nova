@@ -84,7 +84,7 @@ func loadMap(mapId int) {
 
 	err := loadFromFile(fileName, &Maps[mapId])
 	if err != nil {
-		log.Printf("Error loading map '%s': %s\n", fileName, err)
+		log.Printf("Error loading map '%s' (%s)\n", fileName, err)
 	}
 }
 
@@ -94,6 +94,32 @@ func loadMaps() {
 	for i := 0; i < MaxMaps; i++ {
 		loadMap(i)
 	}
+}
+
+func SaveMap(mapId int) {
+	if mapId < 0 || mapId >= MaxMaps {
+		return
+	}
+
+	fileName := getMapFilename(mapId)
+
+	err := saveToFile(fileName, &Maps[mapId])
+	if err != nil {
+		log.Printf("Error saving map '%s' (%s)\n", fileName, err)
+	}
+}
+
+func SaveMaps() {
+	for i := 0; i < MaxMaps; i++ {
+		SaveMap(i)
+	}
+}
+
+func GetMap(mapId int) *Map {
+	if mapId < 0 || mapId >= MaxMaps {
+		return nil
+	}
+	return &Maps[mapId]
 }
 
 func (m *Map) Clear() {
@@ -130,24 +156,5 @@ func (m *Map) ClearTiles() {
 func (m *Map) ClearNpcs() {
 	for i := 0; i < len(m.Npcs); i++ {
 		m.Npcs[i] = -1
-	}
-}
-
-func SaveMap(mapId int) {
-	if mapId < 0 || mapId >= MaxMaps {
-		return
-	}
-
-	fileName := getMapFilename(mapId)
-
-	err := saveToFile(fileName, &Maps[mapId])
-	if err != nil {
-		log.Printf("Error saving map '%s': %s\n", fileName, err)
-	}
-}
-
-func SaveMaps() {
-	for i := 0; i < MaxMaps; i++ {
-		SaveMap(i)
 	}
 }

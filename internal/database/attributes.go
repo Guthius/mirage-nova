@@ -21,6 +21,15 @@ type Stats struct {
 	Magic    int
 }
 
+type EquipmentSlot int
+
+const (
+	EquipWeapon EquipmentSlot = iota
+	EquipArmor
+	EquipHelmet
+	EquipShield
+)
+
 type Equipment struct {
 	Weapon int
 	Armor  int

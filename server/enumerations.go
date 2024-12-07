@@ -6,19 +6,19 @@
 
 const (
 	_ = iota
-	SvpAlert
-	SvpCharacters
-	SvpLoginOk
-	SvpNewCharClasses
-	SClassesData
-	SInGame
-	SPlayerInv
+	SvAlert
+	SvCharacters
+	SvLoginOk
+	SvNewCharClasses
+	SvClasses
+	SvInGame
+	SvPlayerInventory
 	SPlayerInvUpdate
-	SPlayerWornEq
-	SPlayerHp
-	SPlayerMp
-	SPlayerSp
-	SPlayerStats
+	SvPlayerEquipment
+	SvPlayerHP
+	SvPlayerMP
+	SvPlayerSP
+	SvPlayerStats
 	SPlayerData
 	SPlayerMove
 	SNpcMove
@@ -27,33 +27,33 @@ const (
 	SPlayerXY
 	SAttack
 	SNpcAttack
-	SCheckForMap
+	SvCheckForMap
 	SMapData
 	SMapItemData
 	SMapNpcData
 	SMapDone
 	SSayMsg
-	SGlobalMsg
+	SvGlobalMessage
 	SAdminMsg
-	SPlayerMsg
+	SvPlayerMessage
 	SMapMsg
 	SSpawnItem
 	SItemEditor
-	SUpdateItem
+	SvUpdateItem
 	SEditItem
 	SREditor
 	SSpawnNpc
 	SNpcDead
 	SNpcEditor
-	SUpdateNpc
+	SvUpdateNpc
 	SEditNpc
 	SMapKey
 	SEditMap
 	SShopEditor
-	SUpdateShop
+	SvUpdateShop
 	SEditShop
 	SSpellEditor
-	SUpdateSpell
+	SvUpdateSpell
 	SEditSpell
 	STrade
 	SSpells
@@ -61,9 +61,9 @@ const (
 	SHighIndex
 	SCastSpell
 	SDoor
-	SSendMaxes
+	SvLimits
 	SSync
-	SMapRevs
+	SvMapRevisions
 )
 
 const (
@@ -74,7 +74,7 @@ const (
 	ClpLogin
 	ClpCreateCharacter
 	ClpDeleteCharacter
-	CUseChar
+	ClpSelectCharacter
 	CSayMsg
 	CEmoteMsg
 	CBroadcastMsg

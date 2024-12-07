@@ -31,5 +31,9 @@ VB6/
 .idea/
 
 # Server Data
+data/items/
+data/maps/
 data/npcs/
+data/shops/
+data/spells/
 data/*.db

@@ -10,6 +10,8 @@ import (
 )
 
 var IsShuttingDown = false
+var Motd = ""
+var PlayersOnline = 0
 
 func HandleClientConnected(id int, conn *network.Conn) {
 	log.Printf("[%d] Client connected from %s\n", id, conn.RemoteAddr())
