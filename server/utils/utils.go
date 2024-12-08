@@ -1,10 +1,8 @@
-package database
+package utils
 
-import (
-	"unicode"
-)
+import "unicode"
 
-// IsValidName checks if the given name is valid.
+// isValidName checks if the specified name is valid.
 // A name is considered valid if it only contains letters, digits, spaces and underscores.
 func IsValidName(name string) bool {
 	for _, ch := range name {

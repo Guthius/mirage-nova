@@ -27,12 +27,9 @@ go.work.sum
 # VB6 Client & Server
 VB6/
 
-# GoLand files
-.idea/
-
 # Server Data
 data/items/
-data/maps/
+data/levels/
 data/npcs/
 data/shops/
 data/spells/

@@ -1,15 +1,19 @@
-﻿package database
+package character
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
+	"unicode"
 
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
+	"github.com/guthius/mirage-nova/server/data/equipment"
 	"github.com/guthius/mirage-nova/server/data/stats"
 	"github.com/guthius/mirage-nova/server/data/vitals"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Direction int
@@ -60,7 +64,7 @@ type Character struct {
 	Vitals      vitals.Data
 	Stats       stats.Data
 	Points      int
-	Equipment   Equipment
+	Equipment   equipment.Data
 	Inv         [config.MaxInventory]InventorySlot
 	Spells      [config.MaxCharacterSpells]int
 	Map         int
@@ -69,8 +73,53 @@ type Character struct {
 	Dir         Direction
 }
 
+func init() {
+	db, err := openDatabase()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS characters (
+		    id INTEGER PRIMARY KEY AUTOINCREMENT,
+		    account_id INTEGER,
+		    name TEXT UNIQUE COLLATE NOCASE,
+		    gender INTEGER NOT NULL DEFAULT 0,
+		    class INTEGER NOT NULL,
+		    sprite INTEGER NOT NULL DEFAULT 0,
+		    level INTEGER NOT NULL DEFAULT 1,
+		    exp INTEGER NOT NULL DEFAULT 0,
+		    access INTEGER NOT NULL DEFAULT 0,
+		    pk INTEGER NOT NULL DEFAULT 0,
+		    guild TEXT NOT NULL COLLATE NOCASE DEFAULT '',
+		    guild_access INTEGER NOT NULL DEFAULT 0,
+		    vital_hp INTEGER NOT NULL,
+		    vital_mp INTEGER NOT NULL,
+		    vital_sp INTEGER NOT NULL,
+		    stat_strength INTEGER NOT NULL,
+		    stat_defense INTEGER NOT NULL,
+		    stat_speed INTEGER NOT NULL,
+		    stat_magic INTEGER NOT NULL,
+		    equip_weapon INTEGER NOT NULL DEFAULT -1,
+		    equip_armor INTEGER NOT NULL DEFAULT -1,
+		    equip_helmet INTEGER NOT NULL DEFAULT -1,
+		    equip_shield INTEGER NOT NULL DEFAULT -1,
+		    inventory TEXT NOT NULL DEFAULT '',
+		    spells TEXT NOT NULL DEFAULT '',
+		    map INTEGER NOT NULL DEFAULT 0, 
+		    x INTEGER NOT NULL DEFAULT 0, 
+		    y INTEGER NOT NULL DEFAULT 0,
+		    dir INTEGER NOT NULL DEFAULT 0
+		)`)
+
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
 func CharacterExists(characterName string) bool {
-	if !IsValidName(characterName) {
+	if !isValidName(characterName) {
 		return false
 	}
 
@@ -479,4 +528,24 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 	character.Id = id
 
 	return character, true
+}
+
+// isValidName checks if the given name is valid.
+// A name is considered valid if it only contains letters, digits, spaces and underscores.
+func isValidName(name string) bool {
+	for _, ch := range name {
+		if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) && ch != ' ' && ch != '_' {
+			return false
+		}
+	}
+	return true
+}
+
+// openDatabase opens the SQLite database and returns a database handle.
+func openDatabase() (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", "data/characters.db")
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

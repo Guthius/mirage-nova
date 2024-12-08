@@ -6,33 +6,51 @@ import (
 	"github.com/guthius/mirage-nova/server/data"
 )
 
-type Level struct {
-	Id      int
-	Data    *data.LevelData
-	Players []*PlayerData
+type TempTile struct {
+	DoorOpen bool
 }
 
-var Levels [config.MaxMaps]Level
+type Room struct {
+	Id         int
+	LevelData  *data.LevelData
+	LevelCache []byte
+	TempTiles  []TempTile
+	Players    []*PlayerData
+	DoorTimer  int64
+}
+
+var rooms [config.MaxMaps]Room
 
 func init() {
-	for i := 0; i < len(Levels); i++ {
-		Levels[i] = Level{
-			Id:      i + 1,
-			Data:    &data.LevelData{},
-			Players: make([]*PlayerData, config.MaxPlayers),
+	for i := 0; i < len(rooms); i++ {
+		levelData := data.GetLevel(i)
+
+		rooms[i] = Room{
+			Id:         i + 1,
+			LevelData:  levelData,
+			LevelCache: buildLevelCache(levelData),
+			TempTiles:  make([]TempTile, len(levelData.Tiles)),
+			Players:    make([]*PlayerData, config.MaxPlayers),
+			DoorTimer:  0,
 		}
 	}
 }
 
+// buildLevelCache creates a byte array of the specified level data that can be sent to players.
+func buildLevelCache(_ *data.LevelData) []byte {
+	// TODO: Implement me
+	return nil
+}
+
 // Send a packet with the specified bytes to all players on the level
-func (level *Level) Send(bytes []byte) {
+func (level *Room) Send(bytes []byte) {
 	for _, p := range level.Players {
 		p.Send(bytes)
 	}
 }
 
 // AddPlayer adds the player to the level
-func (level *Level) AddPlayer(p *PlayerData) {
+func (level *Room) AddPlayer(p *PlayerData) {
 	for _, other := range level.Players {
 		if other == p {
 			return
@@ -50,7 +68,7 @@ func (level *Level) AddPlayer(p *PlayerData) {
 }
 
 // RemovePlayer removes the specified Player from the level
-func (level *Level) RemovePlayer(p *PlayerData) {
+func (level *Room) RemovePlayer(p *PlayerData) {
 	for i := 0; i < len(level.Players); i++ {
 		if level.Players[i] != p {
 			continue

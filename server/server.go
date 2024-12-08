@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/guthius/mirage-nova/internal/database"
-	_ "github.com/guthius/mirage-nova/internal/logger"
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/config"
+
+	_ "github.com/guthius/mirage-nova/server/internal/logger"
 )
 
 var IsShuttingDown = false
@@ -100,8 +100,6 @@ func LoadMotd() {
 }
 
 func main() {
-	database.Create()
-
 	networkConfig := net.Config{
 		Address:              config.GameAddr,
 		MaxConnections:       config.MaxPlayers,

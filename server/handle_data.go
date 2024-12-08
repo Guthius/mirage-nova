@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/guthius/mirage-nova/internal/database"
 	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/character"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
+	"github.com/guthius/mirage-nova/server/user"
+	"github.com/guthius/mirage-nova/server/utils"
 )
 
 type PacketHandler func(player *PlayerData, packet *net.PacketReader)
@@ -79,18 +81,18 @@ func HandleCreateAccount(player *PlayerData, packet *net.PacketReader) {
 	}
 
 	// Make sure the account name is valid
-	if !database.IsValidName(accountName) {
+	if !utils.IsValidName(accountName) {
 		SendAlert(player, "Invalid account name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 
 	// Make sure the account name is not already taken
-	if database.AccountExists(accountName) {
+	if user.Exists(accountName) {
 		SendAlert(player, "Sorry, that account name is already taken!")
 		return
 	}
 
-	_, ok := database.CreateAccount(accountName, password)
+	_, ok := user.Create(accountName, password)
 	if !ok {
 		SendAlert(player, "There was an problem creating your account. Please try again later.")
 		return
@@ -142,7 +144,7 @@ func HandleLogin(player *PlayerData, packet *net.PacketReader) {
 	}
 
 	// Make sure the account exists and the password is correct
-	account := database.LoadAccount(accountName)
+	account := user.Load(accountName)
 	if account == nil || !account.IsPasswordCorrect(password) {
 		SendAlert(player, "That account name does not exist or the password is incorrect.")
 		return
@@ -154,7 +156,7 @@ func HandleLogin(player *PlayerData, packet *net.PacketReader) {
 		return
 	}
 
-	characters := database.LoadCharactersForAccount(account.Id)
+	characters := character.LoadCharactersForAccount(account.Id)
 	characterCount := len(characters)
 
 	player.Account = account
@@ -184,7 +186,7 @@ func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 	}
 
 	characterName := packet.ReadString()
-	gender := database.CharacterGender(packet.ReadLong())
+	gender := character.CharacterGender(packet.ReadLong())
 	classId := packet.ReadLong() - 1
 	slot := packet.ReadLong() - 1
 
@@ -198,7 +200,7 @@ func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 		return
 	}
 
-	if gender != database.GenderMale && gender != database.GenderFemale {
+	if gender != character.GenderMale && gender != character.GenderFemale {
 		ReportHack(player, "invalid gender")
 		return
 	}
@@ -208,23 +210,23 @@ func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 		return
 	}
 
-	character := &player.CharacterList[slot]
-	if character.Id != 0 {
+	char := &player.CharacterList[slot]
+	if char.Id != 0 {
 		SendAlert(player, "Character already exists!")
 		return
 	}
 
-	if !database.IsValidName(characterName) {
+	if !utils.IsValidName(characterName) {
 		SendAlert(player, "Invalid character name, only letters, numbers, spaces, and _ allowed in names.")
 		return
 	}
 
-	if database.CharacterExists(characterName) {
+	if character.CharacterExists(characterName) {
 		SendAlert(player, "Sorry, but that name is in use!")
 		return
 	}
 
-	_, ok := database.CreateCharacter(player.Account.Id, characterName, gender, classId)
+	_, ok := character.CreateCharacter(player.Account.Id, characterName, gender, classId)
 	if !ok {
 		SendAlert(player, "There was an problem creating the character. Please try again later.")
 		return
@@ -298,8 +300,8 @@ func HandleSelectCharacter(player *PlayerData, packet *net.PacketReader) {
 // ::::::::::::::::::::::::::::::::::
 
 func HandleRequestNewMap(player *PlayerData, packet *net.PacketReader) {
-	dir := database.Direction(packet.ReadLong())
-	if dir < database.Down || dir >= database.Right {
+	dir := character.Direction(packet.ReadLong())
+	if dir < character.Down || dir >= character.Right {
 		return
 	}
 

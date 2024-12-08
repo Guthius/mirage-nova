@@ -1,4 +1,4 @@
-﻿package logger
+package logger
 
 func init() {
 	// log.SetFlags(log.Ltime | log.Lshortfile)

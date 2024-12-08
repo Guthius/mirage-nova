@@ -3,11 +3,12 @@
 import (
 	"strings"
 
-	"github.com/guthius/mirage-nova/internal/database"
 	"github.com/guthius/mirage-nova/net"
+	"github.com/guthius/mirage-nova/server/character"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/data/vitals"
+	"github.com/guthius/mirage-nova/server/user"
 )
 
 const (
@@ -25,10 +26,10 @@ const (
 type PlayerData struct {
 	Id            int
 	Connection    *net.Conn
-	Account       *database.Account
+	Account       *user.Account
 	Buffer        []byte
-	CharacterList [config.MaxChars]database.Character
-	Character     *database.Character
+	CharacterList [config.MaxChars]character.Character
+	Character     *character.Character
 	TargetType    TargetType
 	Target        int
 	GettingMap    bool
