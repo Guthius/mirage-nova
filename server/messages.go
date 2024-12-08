@@ -2,6 +2,7 @@
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/guthius/mirage-nova/net"
@@ -10,6 +11,42 @@ import (
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/data/vitals"
 )
+
+func ReportHack(p *PlayerData, reason string) {
+	log.Printf("[%d] Terminating connection with %s (%s)\n", p.Id, p.Connection.RemoteAddr(), reason)
+
+	if p.IsPlaying() {
+		SendGlobalMessage(fmt.Sprintf("%s has been booted", p.Character.Name), color.White)
+	}
+
+	SendAlert(p, fmt.Sprintf("You have lost your connection with %s", config.GameName))
+}
+
+func SendDataToAll(bytes []byte) {
+	for _, p := range players {
+		p.Send(bytes)
+	}
+}
+
+func SendWelcome(player *PlayerData) {
+	SendMessage(player, "Type /help for help on commands. Use arrow keys to move, hold down shift to run, and use ctrl to attack.", color.Cyan)
+
+	if len(Motd) > 0 {
+		SendMessage(player, fmt.Sprintf("MOTD: %s", Motd), color.BrightCyan)
+	}
+
+	SendPlayersOnline(player)
+}
+
+func SendGlobalMessage(message string, color color.Color) {
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvGlobalMessage)
+	writer.WriteString(message)
+	writer.WriteByte(byte(color))
+
+	SendDataToAll(writer.Bytes())
+}
 
 func SendPlayersOnline(p *PlayerData) {
 	// Get a slice with all the in game players.
@@ -254,6 +291,26 @@ func SendUpdateItem(p *PlayerData, itemId int) {
 	p.Send(writer.Bytes())
 }
 
+func SendUpdateItemToAll(itemId int) {
+	itemData := data.GetItem(itemId)
+	if itemData == nil {
+		return
+	}
+
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvUpdateItem)
+	writer.WriteLong(itemId + 1)
+	writer.WriteString(itemData.Name)
+	writer.WriteInteger(itemData.Pic)
+	writer.WriteByte(byte(itemData.Type))
+	writer.WriteInteger(itemData.Data1)
+	writer.WriteInteger(itemData.Data2)
+	writer.WriteInteger(itemData.Data3)
+
+	SendDataToAll(writer.Bytes())
+}
+
 func SendNpcs(p *PlayerData) {
 	for i := 0; i < config.MaxNpcs; i++ {
 		npcData := data.GetNpc(i)
@@ -278,6 +335,22 @@ func SendUpdateNpc(p *PlayerData, npcId int) {
 	writer.WriteInteger(npcData.Sprite)
 
 	p.Send(writer.Bytes())
+}
+
+func SendUpdateNpcToAll(npcId int) {
+	npcData := data.GetNpc(npcId)
+	if npcData == nil {
+		return
+	}
+
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvUpdateNpc)
+	writer.WriteLong(npcId + 1)
+	writer.WriteString(npcData.Name)
+	writer.WriteInteger(npcData.Sprite)
+
+	SendDataToAll(writer.Bytes())
 }
 
 func SendShops(p *PlayerData) {
@@ -306,6 +379,21 @@ func SendUpdateShop(p *PlayerData, shopId int) {
 	p.Send(writer.Bytes())
 }
 
+func SendUpdateShopToAll(shopId int) {
+	shop := data.GetShop(shopId)
+	if shop == nil {
+		return
+	}
+
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvUpdateShop)
+	writer.WriteLong(shopId + 1)
+	writer.WriteString(shop.Name)
+
+	SendDataToAll(writer.Bytes())
+}
+
 func SendSpells(p *PlayerData) {
 	for i := 0; i < config.MaxSpells; i++ {
 		spell := data.GetSpell(i)
@@ -332,6 +420,23 @@ func SendUpdateSpell(p *PlayerData, spellId int) {
 	writer.WriteInteger(spell.Pic)
 
 	p.Send(writer.Bytes())
+}
+
+func SendUpdateSpellToAll(spellId int) {
+	spell := data.GetSpell(spellId)
+	if spell == nil {
+		return
+	}
+
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvUpdateSpell)
+	writer.WriteLong(spellId + 1)
+	writer.WriteString(spell.Name)
+	writer.WriteInteger(spell.MPReq)
+	writer.WriteInteger(spell.Pic)
+
+	SendDataToAll(writer.Bytes())
 }
 
 func SendLimits(p *PlayerData) {

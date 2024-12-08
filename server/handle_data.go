@@ -1,7 +1,6 @@
 ﻿package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"log"
 
@@ -24,40 +23,6 @@ func init() {
 	PacketHandlers[ClpSelectCharacter] = HandleSelectCharacter
 	PacketHandlers[ClRequestNewMap] = HandleRequestNewMap
 	PacketHandlers[ClNeedMap] = HandleNeedMap
-}
-
-func HandleData(player *PlayerData, bytes []byte) {
-	player.Buffer = append(player.Buffer, bytes...)
-	if len(player.Buffer) < 2 {
-		return
-	}
-
-	buf := player.Buffer
-	off := 0
-
-	// Handle all packets in the buffer
-	for len(buf) >= 2 {
-		size := int(binary.LittleEndian.Uint16(buf))
-		if len(buf) < size+2 {
-			return
-		}
-		off += 2
-		buf = buf[2:]
-
-		reader := net.NewReader(buf[:size])
-		HandlePacket(player, reader)
-
-		off += size
-		buf = buf[size:]
-	}
-
-	// Move the bytes that are remaining to the front of the buffer
-	bytesLeft := len(player.Buffer) - off
-	if bytesLeft > 0 {
-		copy(player.Buffer, player.Buffer[off:])
-	}
-
-	player.Buffer = player.Buffer[:bytesLeft]
 }
 
 func HandlePacket(player *PlayerData, reader *net.PacketReader) {

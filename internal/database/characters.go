@@ -395,9 +395,9 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		Exp:       0,
 		Access:    AccessNone,
 		PK:        false,
-		Map:       StartMap,
-		X:         StartX,
-		Y:         StartY,
+		Map:       config.StartMap,
+		X:         config.StartX,
+		Y:         config.StartY,
 		Dir:       Down,
 
 		Vitals: vitals.Data{

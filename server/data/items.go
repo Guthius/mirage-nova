@@ -35,14 +35,14 @@ type ItemData struct {
 	Data3 int
 }
 
-var itemStore = storage.NewFileStore("", "data/items", resetItemData)
+var itemStore = storage.NewFileStore("data/items", "items", resetItemData)
 var items [config.MaxItems]*ItemData
 
 func init() {
 	for i := 0; i < config.MaxItems; i++ {
 		item, err := itemStore.Load(i)
 		if err != nil {
-			log.Printf("Error loading item %03d: %s\n", i, err)
+			log.Printf("error loading item %03d (%s)\n", i, err)
 		}
 		items[i] = item
 	}
@@ -66,7 +66,7 @@ func SaveItem(id int) {
 
 	err := itemStore.Save(id, items[id])
 	if err != nil {
-		log.Printf("Error saving item %03d: %3\n", id, err)
+		log.Printf("error saving item %03d (%s)\n", id, err)
 	}
 }
 

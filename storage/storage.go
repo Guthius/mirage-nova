@@ -27,6 +27,11 @@ func (fs *FileStore[K]) Load(id int) (*K, error) {
 	filename := path.Join(fs.path, fmt.Sprintf("%s%d.gob", fs.prefix, id))
 	file, err := os.Open(filename)
 	if err != nil {
+		if os.IsNotExist(err) {
+			data := new(K)
+			fs.reset(data)
+			return data, nil
+		}
 		return nil, err
 	}
 	defer file.Close()

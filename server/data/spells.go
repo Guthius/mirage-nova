@@ -31,14 +31,14 @@ type SpellData struct {
 	Data3    int
 }
 
-var spellStore = storage.NewFileStore("spell", "data/spells", resetSpellData)
+var spellStore = storage.NewFileStore("data/spells", "spell", resetSpellData)
 var spells [config.MaxSpells]*SpellData
 
 func init() {
 	for i := 0; i < config.MaxSpells; i++ {
 		spell, err := spellStore.Load(i)
 		if err != nil {
-			log.Printf("Error loading spell %03d: %s\n", i, err)
+			log.Printf("error loading spell %03d (%s)\n", i, err)
 		}
 		spells[i] = spell
 	}
@@ -65,7 +65,7 @@ func SaveSpell(id int) {
 
 	err := spellStore.Save(id, spells[id])
 	if err != nil {
-		log.Printf("Error saving spell %03d: %3\n", id, err)
+		log.Printf("error saving spell %03d (%s)\n", id, err)
 	}
 }
 

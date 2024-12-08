@@ -69,14 +69,14 @@ type LevelData struct {
 	Npcs     [config.MaxMapNpcs]int
 }
 
-var levelStore = storage.NewFileStore("level", "data/levels", resetLevelData)
+var levelStore = storage.NewFileStore("data/levels", "level", resetLevelData)
 var levels [config.MaxMaps]*LevelData
 
 func init() {
-	for i := 0; i < config.MaxNpcs; i++ {
+	for i := 0; i < config.MaxMaps; i++ {
 		level, err := levelStore.Load(i)
 		if err != nil {
-			log.Printf("Error loading level %03d: %s\n", i, err)
+			log.Printf("error loading level %03d (%s)\n", i, err)
 		}
 		levels[i] = level
 	}
@@ -132,7 +132,7 @@ func SaveLevel(id int) {
 
 	err := levelStore.Save(id, levels[id])
 	if err != nil {
-		log.Printf("Error saving map %03d: %3\n", id, err)
+		log.Printf("error saving level %03d (%s)\n", id, err)
 	}
 }
 

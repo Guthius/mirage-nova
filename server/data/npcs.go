@@ -31,14 +31,14 @@ type NpcData struct {
 	Stats         stats.Data
 }
 
-var npcStore = storage.NewFileStore("npc", "data/npcs", resetNpcData)
+var npcStore = storage.NewFileStore("data/npcs", "npc", resetNpcData)
 var npcs [config.MaxNpcs]*NpcData
 
 func init() {
 	for i := 0; i < config.MaxNpcs; i++ {
 		npc, err := npcStore.Load(i)
 		if err != nil {
-			log.Printf("Error loading npc %03d: %s\n", i, err)
+			log.Printf("error loading npc %03d (%s)\n", i, err)
 		}
 		npcs[i] = npc
 	}
@@ -66,7 +66,7 @@ func SaveNpc(id int) {
 
 	err := npcStore.Save(id, npcs[id])
 	if err != nil {
-		log.Printf("Error saving npc %03d: %3\n", id, err)
+		log.Printf("error saving npc %03d (%s)\n", id, err)
 	}
 }
 

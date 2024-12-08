@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -32,16 +33,50 @@ func HandleClientConnected(id int, conn *net.Conn) {
 func HandleClientDisconnected(id int, conn *net.Conn) {
 	log.Printf("[%d] Connection with %s has been terminated\n", id, conn.RemoteAddr())
 
-	pl := Get(id)
-	if pl.IsPlaying() {
+	player := Get(id)
+	if player.IsPlaying() {
 		// TODO: Call LeftGame
 	}
 
-	pl.Clear()
+	player.Clear()
 }
 
 func HandleDataReceived(id int, _ *net.Conn, bytes []byte) {
-	HandleData(Get(id), bytes)
+	const headerSize = 2
+
+	player := Get(id)
+
+	player.Buffer = append(player.Buffer, bytes...)
+	if len(player.Buffer) < headerSize {
+		return
+	}
+
+	buf := player.Buffer
+	off := 0
+
+	// Handle all packets in the buffer
+	for len(buf) >= headerSize {
+		size := int(binary.LittleEndian.Uint16(buf))
+		if len(buf) < size+headerSize {
+			return
+		}
+		off += headerSize
+		buf = buf[headerSize:]
+
+		reader := net.NewReader(buf[:size])
+		HandlePacket(player, reader)
+
+		off += size
+		buf = buf[size:]
+	}
+
+	// Move the bytes that are remaining to the front of the buffer
+	bytesLeft := len(player.Buffer) - off
+	if bytesLeft > 0 {
+		copy(player.Buffer, player.Buffer[off:])
+	}
+
+	player.Buffer = player.Buffer[:bytesLeft]
 }
 
 func LoadMotd() {

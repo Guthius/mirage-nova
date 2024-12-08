@@ -22,14 +22,14 @@ type ShopData struct {
 	TradeItems [config.MaxTrades]TradeItemData
 }
 
-var shopStore = storage.NewFileStore("spell", "data/spells", resetShopData)
+var shopStore = storage.NewFileStore("data/shops", "shop", resetShopData)
 var shops [config.MaxShops]*ShopData
 
 func init() {
 	for i := 0; i < config.MaxShops; i++ {
 		shop, err := shopStore.Load(i)
 		if err != nil {
-			log.Printf("Error loading shop %03d: %s\n", i, err)
+			log.Printf("Error loading shop %03d (%s)\n", i, err)
 		}
 		shops[i] = shop
 	}
@@ -62,7 +62,7 @@ func SaveShop(id int) {
 
 	err := shopStore.Save(id, shops[id])
 	if err != nil {
-		log.Printf("Error saving spell %03d: %3\n", id, err)
+		log.Printf("error saving shop %03d (%s)\n", id, err)
 	}
 }
 

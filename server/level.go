@@ -3,11 +3,12 @@
 import (
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/config"
+	"github.com/guthius/mirage-nova/server/data"
 )
 
 type Level struct {
 	Id      int
-	Data    *LevelData
+	Data    *data.LevelData
 	Players []*PlayerData
 }
 
@@ -17,7 +18,7 @@ func init() {
 	for i := 0; i < len(Levels); i++ {
 		Levels[i] = Level{
 			Id:      i + 1,
-			Data:    &LevelData{},
+			Data:    &data.LevelData{},
 			Players: make([]*PlayerData, config.MaxPlayers),
 		}
 	}
@@ -68,6 +69,6 @@ func (level *Level) RemovePlayer(p *PlayerData) {
 	}
 }
 
-func getPlayerDataPacket(pl *PlayerData) []byte {
+func getPlayerDataPacket(_ *PlayerData) []byte {
 	return nil
 }

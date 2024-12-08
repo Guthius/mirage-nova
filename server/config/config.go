@@ -26,3 +26,9 @@ const (
 	VersionMinor    = 0
 	VersionRevision = 0
 )
+
+const (
+	StartMap = 5
+	StartX   = 5
+	StartY   = 8
+)
