@@ -556,7 +556,7 @@ func JoinGame(p *PlayerData) {
 //             Next
 //         End If
 
-//         ' If we suceeded in spawning then send it to everyone
+//         ' If we succeeded in spawning then send it to everyone
 //         If Spawned Then
 //             Set Buffer = New clsBuffer
 
@@ -1704,7 +1704,7 @@ func Move(p *PlayerData, dir character.Direction, movement int) {
 	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_HEAL Then
 	//         Call SetPlayerVital(Index, Vitals.HP, GetPlayerMaxVital(Index, Vitals.HP))
 	//         Call SendVital(Index, Vitals.HP)
-	//         Call PlayerMsg(Index, "You feel odd as a strange glow eminated from you and your a lifted into the air. Bright orbs of light travel around you. You are miraculously healed!", BrightGreen)
+	//         Call PlayerMsg(Index, "You feel odd as a strange glow emanated from you and you are lifted into the air. Bright orbs of light travel around you. You are miraculously healed!", BrightGreen)
 	//     End If
 
 	//     ' Check for kill tile, and if so kill them
