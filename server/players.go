@@ -36,16 +36,16 @@ type PlayerData struct {
 
 var players [config.MaxPlayers]PlayerData
 
-// Get returns the player at the specified index.
-func Get(index int) *PlayerData {
+// GetPlayer returns the player at the specified index.
+func GetPlayer(index int) *PlayerData {
 	if index < 0 || index >= config.MaxPlayers {
 		return nil
 	}
 	return &players[index]
 }
 
-// GetPlaying returns a slice that contains all players that are currently in game.
-func GetPlaying() []*PlayerData {
+// GetPlayersInGame returns a slice that contains all players that are currently in game.
+func GetPlayersInGame() []*PlayerData {
 	result := make([]*PlayerData, 0, config.MaxPlayers)
 	for i := 0; i < config.MaxPlayers; i++ {
 		if players[i].IsPlaying() {

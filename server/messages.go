@@ -50,7 +50,7 @@ func SendGlobalMessage(message string, color color.Color) {
 
 func SendPlayersOnline(p *PlayerData) {
 	// Get a slice with all the in game players.
-	playing := GetPlaying()
+	playing := GetPlayersInGame()
 	if len(playing) == 0 {
 		SendMessage(p, "There are no other players online.", color.WhoColor)
 		return

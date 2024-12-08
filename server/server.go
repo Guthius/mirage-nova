@@ -21,19 +21,19 @@ var PlayersOnline = 0
 func HandleClientConnected(id int, conn *net.Conn) {
 	log.Printf("[%d] Client connected from %s\n", id, conn.RemoteAddr())
 
-	p := Get(id)
-	p.Connection = conn
-	p.Id = id
+	player := GetPlayer(id)
+	player.Connection = conn
+	player.Id = id
 
 	if IsBanned(conn.RemoteAddr()) {
-		SendAlert(p, fmt.Sprintf("You have been banned from %s, and you are no longer able to play.", config.GameName))
+		SendAlert(player, fmt.Sprintf("You have been banned from %s, and you are no longer able to play.", config.GameName))
 	}
 }
 
 func HandleClientDisconnected(id int, conn *net.Conn) {
 	log.Printf("[%d] Connection with %s has been terminated\n", id, conn.RemoteAddr())
 
-	player := Get(id)
+	player := GetPlayer(id)
 	if player.IsPlaying() {
 		// TODO: Call LeftGame
 	}
@@ -44,7 +44,7 @@ func HandleClientDisconnected(id int, conn *net.Conn) {
 func HandleDataReceived(id int, _ *net.Conn, bytes []byte) {
 	const headerSize = 2
 
-	player := Get(id)
+	player := GetPlayer(id)
 
 	player.Buffer = append(player.Buffer, bytes...)
 	if len(player.Buffer) < headerSize {
