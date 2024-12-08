@@ -10,7 +10,14 @@ It leverages Go's powerful concurrency model to enable efficient and scalable ne
 
 ## Features
 
-*TBC*
+- Player account management and login system
+- Account management with multiple characters per account
+- Real-time multiplayer communication with efficient TCP networking
+- NPC spawning, movement, and interactions
+- Basic combat mechanics
+- Item inventory system with support for trading and equipping items
+- Experience and leveling system for player progression
+- In-game chat system (global, private, and local)
 
 ## Build Instructions
 
