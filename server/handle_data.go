@@ -9,13 +9,14 @@ import (
 
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/character"
+	"github.com/guthius/mirage-nova/server/common"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/user"
 	"github.com/guthius/mirage-nova/server/utils"
 )
 
-type PacketHandler func(player *PlayerData, packet *net.PacketReader)
+type PacketHandler func(player *PlayerData, reader *net.PacketReader)
 
 var PacketHandlers [MaxClientPacketId]PacketHandler
 
@@ -65,14 +66,14 @@ func HandleGetClasses(player *PlayerData, _ *net.PacketReader) {
 // :: New account packet ::
 // ::::::::::::::::::::::::
 
-func HandleCreateAccount(player *PlayerData, packet *net.PacketReader) {
+func HandleCreateAccount(player *PlayerData, reader *net.PacketReader) {
 	if player.IsLoggedIn() {
 		return
 	}
 
 	// Get the data
-	accountName := packet.ReadString()
-	password := packet.ReadString()
+	accountName := reader.ReadString()
+	password := reader.ReadString()
 
 	// Make sure the account name length is valid
 	if len(accountName) < 3 || len(accountName) > 20 {
@@ -113,17 +114,17 @@ func HandleCreateAccount(player *PlayerData, packet *net.PacketReader) {
 // :: Login packet ::
 // ::::::::::::::::::
 
-func HandleLogin(player *PlayerData, packet *net.PacketReader) {
+func HandleLogin(player *PlayerData, reader *net.PacketReader) {
 	if player.IsLoggedIn() {
 		return
 	}
 
-	// Get the data
-	accountName := packet.ReadString()
-	password := packet.ReadString()
+	// Get the account data
+	accountName := reader.ReadString()
+	password := reader.ReadString()
 
 	// Make sure client version is correct
-	if packet.ReadByte() != config.VersionMajor || packet.ReadByte() != config.VersionMinor || packet.ReadByte() != config.VersionRevision {
+	if reader.ReadByte() != config.VersionMajor || reader.ReadByte() != config.VersionMinor || reader.ReadByte() != config.VersionRevision {
 		SendAlert(player, fmt.Sprintf(
 			"Your client is outdated.\n\n"+
 				"To continue, please update to the latest version.\n\n"+
@@ -186,15 +187,15 @@ func HandleLogin(player *PlayerData, packet *net.PacketReader) {
 // :: Add character packet ::
 // ::::::::::::::::::::::::::
 
-func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
+func HandleCreateCharacter(player *PlayerData, reader *net.PacketReader) {
 	if !player.IsLoggedIn() {
 		return
 	}
 
-	characterName := packet.ReadString()
-	gender := character.CharacterGender(packet.ReadLong())
-	classId := packet.ReadLong() - 1
-	slot := packet.ReadLong() - 1
+	characterName := reader.ReadString()
+	gender := character.Gender(reader.ReadLong())
+	classId := reader.ReadLong() - 1
+	slot := reader.ReadLong() - 1
 
 	if slot < 0 || slot >= len(player.CharacterList) {
 		ReportHack(player, "character slot out of range")
@@ -227,7 +228,7 @@ func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 		return
 	}
 
-	if character.CharacterExists(characterName) {
+	if character.Exists(characterName) {
 		SendAlert(player, "Sorry, but that name is in use!")
 		return
 	}
@@ -247,16 +248,18 @@ func HandleCreateCharacter(player *PlayerData, packet *net.PacketReader) {
 	SendAlert(player, "Character has been created!")
 }
 
-func HandleDeleteCharacter(player *PlayerData, packet *net.PacketReader) {
+func HandleDeleteCharacter(player *PlayerData, reader *net.PacketReader) {
 	if !player.IsLoggedIn() {
 		return
 	}
 
-	slot := packet.ReadLong() - 1
+	// Get the index of the character slot to delete
+	slot := reader.ReadLong() - 1
 	if slot < 0 || slot >= len(player.CharacterList) {
 		return
 	}
 
+	// Check whether the character exists
 	character := &player.CharacterList[slot]
 	if character.Id == 0 {
 		SendAlert(player, "There is no character in this slot.")
@@ -278,16 +281,18 @@ func HandleDeleteCharacter(player *PlayerData, packet *net.PacketReader) {
 // :: Using character packet ::
 // ::::::::::::::::::::::::::::
 
-func HandleSelectCharacter(player *PlayerData, packet *net.PacketReader) {
+func HandleSelectCharacter(player *PlayerData, reader *net.PacketReader) {
 	if !player.IsLoggedIn() || player.Character != nil {
 		return
 	}
 
-	slot := packet.ReadLong() - 1
+	// Get the index of the selected character slot
+	slot := reader.ReadLong() - 1
 	if slot < 0 || slot >= len(player.CharacterList) {
 		ReportHack(player, "character slot out of range")
 	}
 
+	// Check whether the character exists
 	if player.CharacterList[slot].Id == 0 {
 		SendAlert(player, "character does not exist")
 	}
@@ -310,14 +315,14 @@ const (
 	MoveRun  = 2
 )
 
-func HandlePlayerMove(player *PlayerData, packet *net.PacketReader) {
+func HandlePlayerMove(player *PlayerData, reader *net.PacketReader) {
 	if player.GettingLevel {
 		return
 	}
 
-	dir := character.Direction(packet.ReadLong())
+	dir := common.Direction(reader.ReadLong())
 
-	movement := packet.ReadLong()
+	movement := reader.ReadLong()
 	if movement != MoveWalk && movement != MoveRun {
 		ReportHack(player, "invalid movement")
 		return
@@ -340,14 +345,10 @@ func HandlePlayerMove(player *PlayerData, packet *net.PacketReader) {
 // :: Player request for a new map ::
 // ::::::::::::::::::::::::::::::::::
 
-func HandleRequestNewLevel(player *PlayerData, packet *net.PacketReader) {
-	dir := character.Direction(packet.ReadLong())
-	if dir < character.Down || dir >= character.Right {
-		return
-	}
+func HandleRequestNewLevel(player *PlayerData, reader *net.PacketReader) {
+	dir := common.Direction(reader.ReadLong())
 
-	// MovePlayer(player, dir, MoveWalk)
-	// TODO: player.Move(dir, 1)
+	MovePlayer(player, dir, MoveWalk)
 }
 
 // :::::::::::::::::::::
@@ -366,55 +367,56 @@ func utf16ToString(src []byte) string {
 	return strings.TrimSpace(str)
 }
 
-func HandleLevelData(player *PlayerData, packet *net.PacketReader) {
+func HandleLevelData(player *PlayerData, reader *net.PacketReader) {
 	if player.Room == nil || player.Character == nil {
 		return
 	}
 
+	// Make sure the player has mapper access
 	if player.Character.Access < character.AccessMapper {
 		return
 	}
 
 	levelId := player.Room.Id
-	levelData := player.Room.LevelData
-	newRevision := levelData.Revision + 1
+	level := player.Room.Level
+	newRevision := level.Revision + 1
 
-	levelData.Name = utf16ToString(packet.Read(config.NameLength * 2))
-	levelData.Revision = packet.ReadLong()
-	levelData.Type = data.LevelType(packet.ReadInteger())
-	levelData.TileSet = packet.ReadInteger()
-	levelData.Up = packet.ReadInteger() - 1
-	levelData.Down = packet.ReadInteger() - 1
-	levelData.Left = packet.ReadInteger() - 1
-	levelData.Right = packet.ReadInteger() - 1
-	levelData.Music = packet.ReadInteger()
-	levelData.BootMap = packet.ReadInteger() - 1
-	levelData.BootX = int(packet.ReadByte())
-	levelData.BootY = int(packet.ReadByte())
-	levelData.Shop = packet.ReadInteger() - 1
+	level.Name = utf16ToString(reader.Read(config.NameLength * 2))
+	level.Revision = reader.ReadLong()
+	level.Type = data.LevelType(reader.ReadInteger())
+	level.TileSet = reader.ReadInteger()
+	level.Up = reader.ReadInteger() - 1
+	level.Down = reader.ReadInteger() - 1
+	level.Left = reader.ReadInteger() - 1
+	level.Right = reader.ReadInteger() - 1
+	level.Music = reader.ReadInteger()
+	level.BootMap = reader.ReadInteger() - 1
+	level.BootX = int(reader.ReadByte())
+	level.BootY = int(reader.ReadByte())
+	level.Shop = reader.ReadInteger() - 1
 
-	for i := 0; i < len(levelData.Tiles); i++ {
-		for j := 0; j < len(levelData.Tiles[i].Num); j++ {
-			levelData.Tiles[i].Num[j] = packet.ReadInteger()
+	for i := 0; i < len(level.Tiles); i++ {
+		for j := 0; j < len(level.Tiles[i].Num); j++ {
+			level.Tiles[i].Num[j] = reader.ReadInteger()
 		}
 
-		levelData.Tiles[i].Type = data.TileType(packet.ReadInteger())
-		levelData.Tiles[i].Data1 = packet.ReadInteger()
-		levelData.Tiles[i].Data2 = packet.ReadInteger()
-		levelData.Tiles[i].Data3 = packet.ReadInteger()
+		level.Tiles[i].Type = data.TileType(reader.ReadInteger())
+		level.Tiles[i].Data1 = reader.ReadInteger()
+		level.Tiles[i].Data2 = reader.ReadInteger()
+		level.Tiles[i].Data3 = reader.ReadInteger()
 	}
 
 	for i := 0; i < config.MaxMapNpcs; i++ {
-		levelData.Npcs[i] = int(packet.ReadByte()) - 1
+		level.Npcs[i] = int(reader.ReadByte()) - 1
 	}
 
-	levelData.Revision = newRevision
+	level.Revision = newRevision
+
+	for i := 0; i < config.MaxMapNpcs; i++ {
+		// TODO: Call ClearMapNpc(I, MapNum)
+	}
 
 	/*
-	   For I = 1 To MAX_MAP_NPCS
-	       Call ClearMapNpc(I, MapNum)
-	   Next
-
 	   Call SendMapNpcsToMap(MapNum)
 	   Call SpawnMapNpcs(MapNum)
 
@@ -431,7 +433,7 @@ func HandleLevelData(player *PlayerData, packet *net.PacketReader) {
 	data.SaveLevel(levelId - 1)
 
 	// Rebuild the level cache
-	player.Room.LevelCache = buildLevelCache(levelId, levelData)
+	player.Room.LevelCache = buildLevelCache(levelId, level)
 
 	// Refresh level data for all players in the room
 	for _, p := range player.Room.Players {

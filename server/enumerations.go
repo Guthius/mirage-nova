@@ -47,7 +47,7 @@ const (
 	SNpcEditor
 	SvUpdateNpc
 	SEditNpc
-	SMapKey
+	SvMapKey
 	SvEditLevel
 	SShopEditor
 	SvUpdateShop
@@ -58,9 +58,9 @@ const (
 	STrade
 	SSpells
 	SvLeft
-	SHighIndex
+	SvHighIndex
 	SCastSpell
-	SDoor
+	SvDoor
 	SvLimits
 	SSync
 	SvMapRevisions
@@ -70,7 +70,7 @@ const (
 	_ = iota
 	ClGetClasses
 	ClCreateAccount
-	ClDeleteAccount
+	_
 	ClLogin
 	ClCreateCharacter
 	ClDeleteCharacter

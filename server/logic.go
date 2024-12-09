@@ -6,6 +6,7 @@ import (
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/character"
 	"github.com/guthius/mirage-nova/server/color"
+	"github.com/guthius/mirage-nova/server/common"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/data/equipment"
@@ -1544,7 +1545,6 @@ func JoinGame(p *PlayerData) {
 //     PlayersOnMap(MapNum) = YES
 // End Sub
 
-
 // MovePlayerToRoom moves the player to the specified room and position.
 func MovePlayerToRoom(player *PlayerData, roomId int, dx int, dy int) {
 	if roomId < 0 || roomId >= config.MaxMaps {
@@ -1560,7 +1560,7 @@ func MovePlayerToRoom(player *PlayerData, roomId int, dx int, dy int) {
 }
 
 // MovePlayer moves the player in the specified direction.
-func MovePlayer(player *PlayerData, dir character.Direction, movement int) {
+func MovePlayer(player *PlayerData, dir common.Direction, movement int) {
 	if player.Room == nil || player.Character == nil {
 		return
 	}
@@ -1570,16 +1570,16 @@ func MovePlayer(player *PlayerData, dir character.Direction, movement int) {
 	dx, dy := utils.GetAdjacentTile(player.Character.X, player.Character.Y, dir)
 
 	// If the player is trying to move out of bounds move them to the adjacent room
-	if !player.Room.LevelData.Contains(dx, dy) {
+	if !player.Room.Level.Contains(dx, dy) {
 		switch dir {
-		case character.Up:
-			MovePlayerToRoom(player, player.Room.LevelData.Up, dx, player.Room.LevelData.Height-1)
-		case character.Down:
-			MovePlayerToRoom(player, player.Room.LevelData.Down, dx, 0)
-		case character.Left:
-			MovePlayerToRoom(player, player.Room.LevelData.Left, player.Room.LevelData.Width-1, dy)
-		case character.Right:
-			MovePlayerToRoom(player, player.Room.LevelData.Right, 0, dy)
+		case common.DirUp:
+			MovePlayerToRoom(player, player.Room.Level.Up, dx, player.Room.Level.Height-1)
+		case common.DirDown:
+			MovePlayerToRoom(player, player.Room.Level.Down, dx, 0)
+		case common.DirLeft:
+			MovePlayerToRoom(player, player.Room.Level.Left, player.Room.Level.Width-1, dy)
+		case common.DirRight:
+			MovePlayerToRoom(player, player.Room.Level.Right, 0, dy)
 		}
 		return
 	}
@@ -2112,7 +2112,7 @@ func UpdateHighIndex() {
 	}
 
 	writer := net.NewWriter()
-	writer.WriteInteger(SHighIndex)
+	writer.WriteInteger(SvHighIndex)
 	writer.WriteLong(index)
 
 	SendDataToAll(writer.Bytes())

@@ -27,6 +27,9 @@ go.work.sum
 # VB6 Client & Server
 VB6/
 
+# Goland files
+.idea
+
 # Server Data
 bin/data/items/
 bin/data/levels/

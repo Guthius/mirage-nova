@@ -4,10 +4,10 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/guthius/mirage-nova/server/character"
+	"github.com/guthius/mirage-nova/server/common"
 )
 
-// isValidName checks if the specified name is valid.
+// IsValidName checks if the specified name is valid.
 // A name is considered valid if it only contains letters, digits, spaces and underscores.
 func IsValidName(name string) bool {
 	for _, ch := range name {
@@ -24,15 +24,15 @@ func GetTickCount() int64 {
 }
 
 // GetAdjacentTile returns the coordinates of the tile adjacent to the specified tile in the specified direction.
-func GetAdjacentTile(x int, y int, dir character.Direction) (int, int) {
+func GetAdjacentTile(x int, y int, dir common.Direction) (int, int) {
 	switch dir {
-	case character.Up:
+	case common.DirUp:
 		return x, y - 1
-	case character.Down:
+	case common.DirDown:
 		return x, y + 1
-	case character.Left:
+	case common.DirLeft:
 		return x - 1, y
-	case character.Right:
+	case common.DirRight:
 		return x + 1, y
 	}
 	return x, y

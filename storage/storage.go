@@ -60,7 +60,7 @@ func createFolderIfNotExists(folderName string) {
 	info, err := os.Stat(folderName)
 	if !os.IsNotExist(err) {
 		if !info.IsDir() {
-			log.Panicf("Unable to create directory '%s', a file with this name already exists", folderName)
+			log.Panicf("Unable to create directory '%s', a file with the same name already exists", folderName)
 		}
 		return
 	}

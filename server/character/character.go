@@ -5,30 +5,22 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"unicode"
 
+	"github.com/guthius/mirage-nova/server/common"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/data/equipment"
 	"github.com/guthius/mirage-nova/server/data/stats"
 	"github.com/guthius/mirage-nova/server/data/vitals"
+	"github.com/guthius/mirage-nova/server/utils"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type Direction int
+type Gender int
 
 const (
-	Up Direction = iota
-	Down
-	Left
-	Right
-)
-
-type CharacterGender int
-
-const (
-	GenderMale CharacterGender = iota
+	GenderMale Gender = iota
 	GenderFemale
 )
 
@@ -52,7 +44,7 @@ type Character struct {
 	Id          int64
 	AccountId   int64
 	Name        string
-	Gender      CharacterGender
+	Gender      Gender
 	Class       int
 	Sprite      int
 	Level       int
@@ -70,7 +62,7 @@ type Character struct {
 	Room        int
 	X           int
 	Y           int
-	Dir         Direction
+	Dir         common.Direction
 }
 
 func init() {
@@ -118,8 +110,8 @@ func init() {
 	}
 }
 
-func CharacterExists(characterName string) bool {
-	if !isValidName(characterName) {
+func Exists(characterName string) bool {
+	if !utils.IsValidName(characterName) {
 		return false
 	}
 
@@ -277,7 +269,7 @@ func (c *Character) Clear() {
 	c.Room = 0
 	c.X = 0
 	c.Y = 0
-	c.Dir = Down
+	c.Dir = common.DirDown
 
 	c.ClearInventory()
 	c.ClearSpells()
@@ -424,8 +416,8 @@ func (c *Character) Delete() bool {
 	return true
 }
 
-func CreateCharacter(accountId int64, name string, gender CharacterGender, classId int) (*Character, bool) {
-	if CharacterExists(name) {
+func CreateCharacter(accountId int64, name string, gender Gender, classId int) (*Character, bool) {
+	if Exists(name) {
 		return nil, false
 	}
 
@@ -447,7 +439,7 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		Room:      config.StartRoom,
 		X:         config.StartX,
 		Y:         config.StartY,
-		Dir:       Down,
+		Dir:       common.DirDown,
 
 		Vitals: vitals.Data{
 			HP: class.GetMaxVital(vitals.HP, class.Stats.Strength),
@@ -528,17 +520,6 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 	character.Id = id
 
 	return character, true
-}
-
-// isValidName checks if the given name is valid.
-// A name is considered valid if it only contains letters, digits, spaces and underscores.
-func isValidName(name string) bool {
-	for _, ch := range name {
-		if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) && ch != ' ' && ch != '_' {
-			return false
-		}
-	}
-	return true
 }
 
 // openDatabase opens the SQLite database and returns a database handle.

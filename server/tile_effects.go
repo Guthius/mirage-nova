@@ -34,7 +34,7 @@ func TriggerTileEffect(player *PlayerData) {
 			tile.DoorTimer = utils.GetTickCount()
 
 			buffer := net.NewWriter()
-			buffer.WriteInteger(SMapKey)
+			buffer.WriteInteger(SvMapKey)
 			buffer.WriteLong(doorX)
 			buffer.WriteLong(doorY)
 			buffer.WriteLong(1)

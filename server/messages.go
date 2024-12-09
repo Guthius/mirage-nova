@@ -48,11 +48,11 @@ func SendGlobalMessage(message string, color color.Color) {
 	SendDataToAll(writer.Bytes())
 }
 
-func SendPlayersOnline(p *PlayerData) {
+func SendPlayersOnline(player *PlayerData) {
 	// Get a slice with all the in game players.
 	playing := GetPlayersInGame()
 	if len(playing) == 0 {
-		SendMessage(p, "There are no other players online.", color.WhoColor)
+		SendMessage(player, "There are no other players online.", color.WhoColor)
 		return
 	}
 
@@ -66,10 +66,10 @@ func SendPlayersOnline(p *PlayerData) {
 	nameList := strings.Join(names, ", ")
 
 	// Send the list to the player
-	SendMessage(p, fmt.Sprintf("There are %d other players online: %s.", len(names), nameList), color.WhoColor)
+	SendMessage(player, fmt.Sprintf("There are %d other players online: %s.", len(names), nameList), color.WhoColor)
 }
 
-func SendAlert(p *PlayerData, message string) {
+func SendAlert(player *PlayerData, message string) {
 	if len(message) == 0 {
 		return
 	}
@@ -79,33 +79,33 @@ func SendAlert(p *PlayerData, message string) {
 	writer.WriteInteger(SvAlert)
 	writer.WriteString(message)
 
-	p.Send(writer.Bytes())
-	p.Disconnect()
+	player.Send(writer.Bytes())
+	player.Disconnect()
 }
 
-func SendCharacters(p *PlayerData) {
+func SendCharacters(player *PlayerData) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvCharacters)
 
-	for _, c := range p.CharacterList {
+	for _, c := range player.CharacterList {
 		writer.WriteLong(c.Sprite)
 		writer.WriteString(c.Name)
 		writer.WriteByte(byte(c.Level))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendLoginOk(p *PlayerData) {
+func SendLoginOk(player *PlayerData) {
 	writer := net.NewWriter()
 	writer.WriteInteger(SvLoginOk)
-	writer.WriteLong(p.Id + 1)
+	writer.WriteLong(player.Id + 1)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendNewCharClasses(p *PlayerData) {
+func SendNewCharClasses(player *PlayerData) {
 	writer := net.NewWriter()
 
 	numberOfClasses := data.GetClassCount()
@@ -130,10 +130,10 @@ func SendNewCharClasses(p *PlayerData) {
 		writer.WriteByte(byte(class.Stats.Magic))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendClasses(p *PlayerData) {
+func SendClasses(player *PlayerData) {
 	writer := net.NewWriter()
 
 	numberOfClasses := data.GetClassCount()
@@ -158,19 +158,19 @@ func SendClasses(p *PlayerData) {
 		writer.WriteByte(byte(class.Stats.Magic))
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendInGame(p *PlayerData) {
+func SendInGame(player *PlayerData) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvInGame)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendInventory(p *PlayerData) {
-	if p.Character == nil {
+func SendInventory(player *PlayerData) {
+	if player.Character == nil {
 		return
 	}
 
@@ -179,31 +179,31 @@ func SendInventory(p *PlayerData) {
 	writer.WriteInteger(SvPlayerInventory)
 
 	for i := 0; i < config.MaxInventory; i++ {
-		writer.WriteLong(p.Character.Inv[i].Item + 1)
-		writer.WriteLong(p.Character.Inv[i].Value)
-		writer.WriteLong(p.Character.Inv[i].Dur)
+		writer.WriteLong(player.Character.Inv[i].Item + 1)
+		writer.WriteLong(player.Character.Inv[i].Value)
+		writer.WriteLong(player.Character.Inv[i].Dur)
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendEquipment(p *PlayerData) {
-	if p.Character == nil {
+func SendEquipment(player *PlayerData) {
+	if player.Character == nil {
 		return
 	}
 
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvPlayerEquipment)
-	writer.WriteByte(byte(p.Character.Equipment.Weapon + 1))
-	writer.WriteByte(byte(p.Character.Equipment.Armor + 1))
-	writer.WriteByte(byte(p.Character.Equipment.Helmet + 1))
-	writer.WriteByte(byte(p.Character.Equipment.Shield + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Weapon + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Armor + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Helmet + 1))
+	writer.WriteByte(byte(player.Character.Equipment.Shield + 1))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendVital(p *PlayerData, vital vitals.Type) {
+func SendVital(player *PlayerData, vital vitals.Type) {
 	writer := net.NewWriter()
 
 	switch vital {
@@ -217,39 +217,39 @@ func SendVital(p *PlayerData, vital vitals.Type) {
 		return
 	}
 
-	writer.WriteLong(p.GetMaxVital(vital))
-	writer.WriteLong(p.GetVital(vital))
+	writer.WriteLong(player.GetMaxVital(vital))
+	writer.WriteLong(player.GetVital(vital))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendStats(p *PlayerData) {
+func SendStats(player *PlayerData) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvPlayerStats)
-	writer.WriteLong(p.Character.Stats.Strength)
-	writer.WriteLong(p.Character.Stats.Defense)
-	writer.WriteLong(p.Character.Stats.Speed)
-	writer.WriteLong(p.Character.Stats.Magic)
+	writer.WriteLong(player.Character.Stats.Strength)
+	writer.WriteLong(player.Character.Stats.Defense)
+	writer.WriteLong(player.Character.Stats.Speed)
+	writer.WriteLong(player.Character.Stats.Magic)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendPlayerXY(p *PlayerData) {
-	if p.Character == nil {
+func SendPlayerXY(player *PlayerData) {
+	if player.Character == nil {
 		return
 	}
 
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvPlayerXY)
-	writer.WriteLong(p.Character.X)
-	writer.WriteLong(p.Character.Y)
+	writer.WriteLong(player.Character.X)
+	writer.WriteLong(player.Character.Y)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendCheckForLevel(p *PlayerData, levelId int) {
+func SendCheckForLevel(player *PlayerData, levelId int) {
 	levelData := data.GetLevel(levelId)
 	if levelData == nil {
 		return
@@ -261,38 +261,38 @@ func SendCheckForLevel(p *PlayerData, levelId int) {
 	writer.WriteLong(levelId + 1)
 	writer.WriteLong(levelData.Revision)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendLevelData(p *PlayerData) {
-	if p.Room == nil {
+func SendLevelData(player *PlayerData) {
+	if player.Room == nil {
 		return
 	}
-	p.Send(p.Room.LevelCache)
+	player.Send(player.Room.LevelCache)
 }
 
-func SendMessage(p *PlayerData, message string, color color.Color) {
+func SendMessage(player *PlayerData, message string, color color.Color) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvPlayerMessage)
 	writer.WriteString(message)
 	writer.WriteByte(byte(color))
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendItems(p *PlayerData) {
+func SendItems(player *PlayerData) {
 	for i := 0; i < config.MaxItems; i++ {
 		item := data.GetItem(i)
 		if item == nil || len(item.Name) == 0 {
 			continue
 		}
 
-		SendUpdateItem(p, i)
+		SendUpdateItem(player, i)
 	}
 }
 
-func SendUpdateItem(p *PlayerData, itemId int) {
+func SendUpdateItem(player *PlayerData, itemId int) {
 	item := data.GetItem(itemId)
 	if item == nil {
 		return
@@ -309,7 +309,7 @@ func SendUpdateItem(p *PlayerData, itemId int) {
 	writer.WriteInteger(item.Data2)
 	writer.WriteInteger(item.Data3)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateItemToAll(itemId int) {
@@ -332,17 +332,17 @@ func SendUpdateItemToAll(itemId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func SendNpcs(p *PlayerData) {
+func SendNpcs(player *PlayerData) {
 	for i := 0; i < config.MaxNpcs; i++ {
 		npcData := data.GetNpc(i)
 		if npcData == nil || len(npcData.Name) == 0 {
 			continue
 		}
-		SendUpdateNpc(p, i)
+		SendUpdateNpc(player, i)
 	}
 }
 
-func SendUpdateNpc(p *PlayerData, npcId int) {
+func SendUpdateNpc(player *PlayerData, npcId int) {
 	npcData := data.GetNpc(npcId)
 	if npcData == nil {
 		return
@@ -355,7 +355,7 @@ func SendUpdateNpc(p *PlayerData, npcId int) {
 	writer.WriteString(npcData.Name)
 	writer.WriteInteger(npcData.Sprite)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateNpcToAll(npcId int) {
@@ -374,18 +374,18 @@ func SendUpdateNpcToAll(npcId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func SendShops(p *PlayerData) {
+func SendShops(player *PlayerData) {
 	for i := 0; i < config.MaxShops; i++ {
 		shop := data.GetShop(i)
 		if shop == nil || len(shop.Name) == 0 {
 			continue
 		}
 
-		SendUpdateShop(p, i)
+		SendUpdateShop(player, i)
 	}
 }
 
-func SendUpdateShop(p *PlayerData, shopId int) {
+func SendUpdateShop(player *PlayerData, shopId int) {
 	shop := data.GetShop(shopId)
 	if shop == nil {
 		return
@@ -397,7 +397,7 @@ func SendUpdateShop(p *PlayerData, shopId int) {
 	writer.WriteLong(shopId + 1)
 	writer.WriteString(shop.Name)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateShopToAll(shopId int) {
@@ -426,7 +426,7 @@ func SendSpells(p *PlayerData) {
 	}
 }
 
-func SendUpdateSpell(p *PlayerData, spellId int) {
+func SendUpdateSpell(player *PlayerData, spellId int) {
 	spell := data.GetSpell(spellId)
 	if spell == nil {
 		return
@@ -440,7 +440,7 @@ func SendUpdateSpell(p *PlayerData, spellId int) {
 	writer.WriteInteger(spell.MPReq)
 	writer.WriteInteger(spell.Pic)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
 func SendUpdateSpellToAll(spellId int) {
@@ -460,7 +460,33 @@ func SendUpdateSpellToAll(spellId int) {
 	SendDataToAll(writer.Bytes())
 }
 
-func SendLimits(p *PlayerData) {
+func SendDoorData(player *PlayerData) {
+	if player.Room == nil {
+		return
+	}
+
+	room := player.Room
+	width := room.Level.Width
+	height := room.Level.Height
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			tid := y*width + x
+			tile := &room.TempTiles[tid]
+
+			if tile.DoorOpen {
+				writer := net.NewWriter()
+				writer.WriteInteger(SvDoor)
+				writer.WriteLong(x)
+				writer.WriteLong(y)
+
+				player.Send(writer.Bytes())
+			}
+		}
+	}
+}
+
+func SendLimits(player *PlayerData) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvLimits)
@@ -471,10 +497,10 @@ func SendLimits(p *PlayerData) {
 	writer.WriteInteger(config.MaxSpells)
 	writer.WriteInteger(config.MaxMaps)
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }
 
-func SendMapRevisions(p *PlayerData) {
+func SendMapRevisions(player *PlayerData) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvMapRevisions)
@@ -487,5 +513,5 @@ func SendMapRevisions(p *PlayerData) {
 		}
 	}
 
-	p.Send(writer.Bytes())
+	player.Send(writer.Bytes())
 }

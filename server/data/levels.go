@@ -151,7 +151,7 @@ func GetLevel(id int) *LevelData {
 	return levels[id]
 }
 
-// Contains return true if the specified coordatines are within the boundaries of the level; otherwise, returns false.
+// Contains return true if the specified position is within the boundaries of the level; otherwise, returns false.
 func (level *LevelData) Contains(x int, y int) bool {
 	return !(x < 0 || y < 0 || x >= level.Width || y >= level.Height)
 }

@@ -69,7 +69,7 @@ func Exists(accountName string) bool {
 	return count == 1
 }
 
-// LoadAccount loads the account with the specified name from the database.
+// Load loads the account with the specified name from the database.
 func Load(accountName string) *Account {
 	if !utils.IsValidName(accountName) {
 		return nil
@@ -105,7 +105,7 @@ func Load(accountName string) *Account {
 	return &account
 }
 
-// CreateAccount creates a new account with the specified name and password.
+// Create creates a new account with the specified name and password.
 func Create(accountName string, password string, createdFromIp string) (*Account, bool) {
 	if Exists(accountName) {
 		return nil, false

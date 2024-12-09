@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="assets/logo.png" width="400">
+    <img src=".github/assets/logo.png" width="400">
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/guthius/mirage-nova)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Guthius/mirage-nova/go.yml)

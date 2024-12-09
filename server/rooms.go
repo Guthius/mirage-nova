@@ -1,12 +1,11 @@
 ﻿package main
 
 import (
-	"encoding/binary"
 	"fmt"
-	"unicode/utf16"
 
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/color"
+	"github.com/guthius/mirage-nova/server/compat"
 	"github.com/guthius/mirage-nova/server/config"
 	"github.com/guthius/mirage-nova/server/data"
 )
@@ -19,7 +18,7 @@ type TempTile struct {
 
 type Room struct {
 	Id         int
-	LevelData  *data.LevelData
+	Level      *data.LevelData
 	LevelCache []byte
 	TempTiles  []TempTile
 	Players    []*PlayerData
@@ -34,7 +33,7 @@ func init() {
 
 		rooms[i] = Room{
 			Id:         i + 1,
-			LevelData:  levelData,
+			Level:      levelData,
 			LevelCache: buildLevelCache(i+1, levelData),
 			TempTiles:  make([]TempTile, len(levelData.Tiles)),
 			Players:    make([]*PlayerData, 0, config.MaxPlayers),
@@ -43,36 +42,15 @@ func init() {
 
 		rooms[i].resetTempTiles()
 	}
-
 }
 
-func (r *Room) resetTempTiles() {
-	for i := 0; i < len(r.TempTiles); i++ {
-		tile := &r.TempTiles[i]
-		tile.Data = &r.LevelData.Tiles[i]
+func (room *Room) resetTempTiles() {
+	for i := 0; i < len(room.TempTiles); i++ {
+		tile := &room.TempTiles[i]
+		tile.Data = &room.Level.Tiles[i]
 		tile.DoorOpen = false
 		tile.DoorTimer = 0
 	}
-}
-
-// stringToUtf16 converts a string to a byte array of UTF-16 characters.
-func stringToUtf16(s string, maxLen int) []byte {
-	const space uint16 = 0x20
-
-	bytes := make([]byte, maxLen*2)
-
-	codes := utf16.Encode([]rune(s))
-	codesLen := len(codes)
-
-	for i := 0; i < maxLen; i++ {
-		if i < codesLen {
-			binary.LittleEndian.PutUint16(bytes[i*2:], codes[i])
-		} else {
-			binary.LittleEndian.PutUint16(bytes[i*2:], space)
-		}
-	}
-
-	return bytes
 }
 
 // buildLevelCache creates a byte array of the specified level data that can be sent to players.
@@ -81,7 +59,7 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 
 	writer.WriteInteger(SvLevelData)
 	writer.WriteLong(id)
-	writer.Write(stringToUtf16(l.Name, config.NameLength))
+	writer.Write(compat.StringToUtf16(l.Name, config.NameLength))
 	writer.WriteLong(l.Revision)
 	writer.WriteInteger(int(l.Type))
 	writer.WriteInteger(l.TileSet)
@@ -89,11 +67,11 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 	writer.WriteInteger(l.Down + 1)
 	writer.WriteInteger(l.Left + 1)
 	writer.WriteInteger(l.Right + 1)
-	writer.WriteInteger(int(l.Music))
+	writer.WriteInteger(l.Music)
 	writer.WriteInteger(l.BootMap + 1)
 	writer.WriteByte(byte(l.BootX))
 	writer.WriteByte(byte(l.BootY))
-	writer.WriteInteger(int(l.Shop + 1))
+	writer.WriteInteger(l.Shop + 1)
 
 	for i := 0; i < len(l.Tiles); i++ {
 		for j := 0; j < len(l.Tiles[i].Num); j++ {
@@ -118,15 +96,15 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 }
 
 // Send a packet with the specified bytes to all players on the level.
-func (r *Room) Send(bytes []byte) {
-	for _, p := range r.Players {
+func (room *Room) Send(bytes []byte) {
+	for _, p := range room.Players {
 		p.Send(bytes)
 	}
 }
 
 // SendExclude sends a packet with the specified bytes to all players on the level except the specified player.
-func (r *Room) SendExclude(bytes []byte, exclude *PlayerData) {
-	for _, p := range r.Players {
+func (room *Room) SendExclude(bytes []byte, exclude *PlayerData) {
+	for _, p := range room.Players {
 		if p == exclude {
 			continue
 		}
@@ -135,26 +113,27 @@ func (r *Room) SendExclude(bytes []byte, exclude *PlayerData) {
 }
 
 // SendMessage sends a message to all players in the room.
-func (r *Room) SendMessage(message string, color color.Color) {
+func (room *Room) SendMessage(message string, color color.Color) {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvRoomMessage)
 	writer.WriteString(message)
 	writer.WriteByte(byte(color))
 
-	r.Send(writer.Bytes())
+	room.Send(writer.Bytes())
 }
 
-func (r *Room) SendPlayerData(p *PlayerData) {
-	playerData := getPlayerDataPacket(p)
-	for _, o := range r.Players {
-		o.Send(playerData)
+// SendPlayerData sends the player data of the specified player to all players in the room.
+func (room *Room) SendPlayerData(player *PlayerData) {
+	playerData := getPlayerDataPacket(player)
+	for _, p := range room.Players {
+		p.Send(playerData)
 	}
 }
 
 // Contains returns true if the specified player is in the level; otherwise, returns false.
-func (r *Room) Contains(p *PlayerData) bool {
-	for _, player := range r.Players {
+func (room *Room) Contains(player *PlayerData) bool {
+	for _, p := range room.Players {
 		if player == p {
 			return true
 		}
@@ -162,114 +141,99 @@ func (r *Room) Contains(p *PlayerData) bool {
 	return false
 }
 
-func (r *Room) AddPlayerAt(p *PlayerData, x int, y int) {
-	p.Character.X = x
-	p.Character.Y = y
-
-	// If the player is already in the room just send the updated player data to all players in the room
-	if p.Room == r {
-		r.SendPlayerData(p)
+// AddPlayerAt adds the player to the level at the specified position.
+func (room *Room) AddPlayerAt(player *PlayerData, x int, y int) {
+	if player.Character == nil {
 		return
 	}
 
-	r.AddPlayer(p)
+	player.Character.X = x
+	player.Character.Y = y
 
-	TriggerTileEffect(p)
+	// If the player is already in the room just send the updated player data to all players in the room
+	if player.Room == room {
+		TriggerTileEffect(player)
+
+		room.SendPlayerData(player)
+		return
+	}
+
+	room.AddPlayer(player)
 }
 
 // AddPlayer adds the player to the level
-func (r *Room) AddPlayer(p *PlayerData) {
+func (room *Room) AddPlayer(player *PlayerData) {
 	// If the player is already in the room, return
-	if p.Room == r {
+	if player.Room == room {
 		return
 	}
 
 	// If the player is already in a room, remove them from that room
-	if p.Room != nil {
-		p.Room.RemovePlayer(p)
+	if player.Room != nil {
+		player.Room.RemovePlayer(player)
 	}
 
 	// Send the player data of all players in the room to the new player
-	for _, o := range r.Players {
-		playerData := getPlayerDataPacket(o)
-		p.Send(playerData)
+	for _, p := range room.Players {
+		playerData := getPlayerDataPacket(p)
+		player.Send(playerData)
 	}
 
-	r.Players = append(r.Players, p)
+	room.Players = append(room.Players, player)
 
-	p.TargetType = TargetNone
-	p.Target = -1
-	p.GettingLevel = true
-	p.Room = r
+	player.TargetType = TargetNone
+	player.Target = -1
+	player.GettingLevel = true
+	player.Room = room
 
 	// If there is a shop in the room, say hello to the player
-	shop := data.GetShop(r.LevelData.Shop)
+	shop := data.GetShop(room.Level.Shop)
 	if shop != nil {
 		if shop.JoinSay != "" {
-			SendMessage(p, fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), color.SayColor)
+			SendMessage(player, fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), color.SayColor)
 		}
 	}
 
 	// Send the player data to all players in the room including the new player
-	r.SendPlayerData(p)
+	room.SendPlayerData(player)
 
-	r.sendDoorDataTo(p)
+	SendDoorData(player)
+	SendCheckForLevel(player, room.Id)
 
-	// Request the player to check if they have the correct revision of the level
-	SendCheckForLevel(p, r.Id)
-}
-
-func (r *Room) sendDoorDataTo(player *PlayerData) {
-	width := r.LevelData.Width
-	height := r.LevelData.Height
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			tid := y*width + x
-			tile := &r.TempTiles[tid]
-
-			if tile.DoorOpen {
-				writer := net.NewWriter()
-				writer.WriteInteger(SDoor)
-				writer.WriteLong(x)
-				writer.WriteLong(y)
-
-				player.Send(writer.Bytes())
-			}
-		}
-	}
+	TriggerTileEffect(player)
 }
 
 // RemovePlayer removes the specified Player from the level
-func (r *Room) RemovePlayer(p *PlayerData) {
+func (room *Room) RemovePlayer(player *PlayerData) {
 	// Remove the player from the list of players in the room
-	for i := 0; i < len(r.Players); i++ {
-		if r.Players[i] != p {
+	for i := 0; i < len(room.Players); i++ {
+		if room.Players[i] != player {
 			continue
 		}
-		r.Players = append(r.Players[:i], r.Players[i+1:]...)
+		room.Players = append(room.Players[:i], room.Players[i+1:]...)
 		break
 	}
 
 	// If there is a shop in the room, say goodbye to the player
-	shop := data.GetShop(r.LevelData.Shop)
+	shop := data.GetShop(room.Level.Shop)
 	if shop != nil {
 		if shop.LeaveSay != "" {
-			SendMessage(p, fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), color.SayColor)
+			SendMessage(player, fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), color.SayColor)
 		}
 	}
 
 	writer := net.NewWriter()
 	writer.WriteInteger(SvLeft)
-	writer.WriteLong(p.Id + 1)
+	writer.WriteLong(player.Id + 1)
 
 	// Notify the remaining players that the specified player has left
-	for _, other := range r.Players {
-		other.Send(writer.Bytes())
+	for _, p := range room.Players {
+		p.Send(writer.Bytes())
 	}
 }
 
-func getPlayerDataPacket(p *PlayerData) []byte {
-	char := p.Character
+func getPlayerDataPacket(player *PlayerData) []byte {
+	char := player.Character
 	if char == nil {
 		return []byte{}
 	}
@@ -282,7 +246,7 @@ func getPlayerDataPacket(p *PlayerData) []byte {
 	writer := net.NewWriter()
 
 	writer.WriteInteger(SvPlayerData)
-	writer.WriteLong(p.Id + 1)
+	writer.WriteLong(player.Id + 1)
 	writer.WriteString(char.Name)
 	writer.WriteLong(char.Sprite)
 	writer.WriteLong(char.Room + 1)
@@ -298,10 +262,10 @@ func getPlayerDataPacket(p *PlayerData) []byte {
 }
 
 // GetTile returns the tile at the specified position.
-func (r *Room) GetTile(x int, y int) *TempTile {
-	if !r.LevelData.Contains(x, y) {
+func (room *Room) GetTile(x int, y int) *TempTile {
+	if !room.Level.Contains(x, y) {
 		return nil
 	}
-	tid := y*r.LevelData.Width + x
-	return &r.TempTiles[tid]
+	tid := y*room.Level.Width + x
+	return &room.TempTiles[tid]
 }
