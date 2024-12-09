@@ -288,7 +288,7 @@ func JoinGame(p *PlayerData) {
 
 	PlayersOnline++
 
-	// TODO: Call UpdateHighIndex
+	UpdateHighIndex()
 
 	if char.Access == character.AccessNone {
 		SendGlobalMessage(fmt.Sprintf("%s has joined %s!", char.Name, config.GameName), color.JoinLeftColor)
@@ -2254,36 +2254,18 @@ func CheckEquippedItems(p *PlayerData) {
 //     End If
 // End Sub
 
-// Public Sub UpdateHighIndex()
-//     Dim I As Integer
-//     Dim array_index As Integer
-//     Dim Buffer As clsBuffer
+func UpdateHighIndex() {
+	index := 0
 
-//     ' no players are logged in
-//     If TotalPlayersOnline < 1 Then
-//         High_Index = 0
-//         Exit Sub
-//     End If
+	for i := 0; i < config.MaxPlayers; i++ {
+		if players[i].IsLoggedIn() {
+			index = i + 1
+		}
+	}
 
-//     ' new size
-//     ReDim PlayersOnline(1 To TotalPlayersOnline)
+	writer := net.NewWriter()
+	writer.WriteInteger(SHighIndex)
+	writer.WriteLong(index)
 
-//     For I = 1 To MAX_PLAYERS
-//         If LenB((GetPlayerLogin(I))) > 0 Then
-//             High_Index = I
-//             array_index = array_index + 1
-//             PlayersOnline(array_index) = I
-
-//             ' early finish if all players are found
-//             If array_index >= TotalPlayersOnline Then
-//                 Exit For
-//             End If
-
-//         End If
-//     Next
-//     Set Buffer = New clsBuffer
-//     Buffer.PreAllocate 6
-//     Buffer.WriteInteger SHighIndex
-//     Buffer.WriteLong High_Index
-//     Call SendDataToAll(Buffer.ToArray())
-// End Sub
+	SendDataToAll(writer.Bytes())
+}
