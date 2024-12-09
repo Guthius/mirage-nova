@@ -34,3 +34,4 @@ bin/data/npcs/
 bin/data/shops/
 bin/data/spells/
 bin/data/*.db
+bin/banlist.txt
