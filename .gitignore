@@ -28,9 +28,9 @@ go.work.sum
 VB6/
 
 # Server Data
-data/items/
-data/levels/
-data/npcs/
-data/shops/
-data/spells/
-data/*.db
+bin/data/items/
+bin/data/levels/
+bin/data/npcs/
+bin/data/shops/
+bin/data/spells/
+bin/data/*.db

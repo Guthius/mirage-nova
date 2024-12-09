@@ -47,14 +47,15 @@ go version
 Navigate to the server directory and build the server:
 ```bash
 cd server
-go build -o mirage-nova-server
+go build -o ../bin/
 ```
 
 ### Run the server
 
 Execute the built server binary:
 ```bash
-./mirage-nova-server
+cd ../bin
+./server
 ```
 
 ## Legacy
