@@ -236,7 +236,7 @@ func getPlayerDataPacket(p *PlayerData) []byte {
 
 	writer := net.NewWriter()
 
-	writer.WriteInteger(SPlayerData)
+	writer.WriteInteger(SvPlayerData)
 	writer.WriteLong(p.Id + 1)
 	writer.WriteString(char.Name)
 	writer.WriteLong(char.Sprite)

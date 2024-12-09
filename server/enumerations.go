@@ -19,7 +19,7 @@ const (
 	SvPlayerMP
 	SvPlayerSP
 	SvPlayerStats
-	SPlayerData
+	SvPlayerData
 	SPlayerMove
 	SNpcMove
 	SPlayerDir
