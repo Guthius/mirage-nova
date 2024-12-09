@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	maxWidth  = 15
-	maxHeight = 11
+	maxWidth  = 16
+	maxHeight = 12
 )
 
 type TileType int
@@ -33,7 +33,7 @@ const (
 )
 
 type Tile struct {
-	Num   [8]int
+	Num   [9]int
 	Type  TileType
 	Data1 int
 	Data2 int
@@ -85,7 +85,7 @@ func init() {
 // resetLevelData resets the fields of the specified LevelData back to their default values.
 func resetLevelData(m *LevelData) {
 	m.Name = ""
-	m.Revision = 0
+	m.Revision = 1
 	m.Type = LevelDefault
 	m.TileSet = 0
 	m.Up = -1

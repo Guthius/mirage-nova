@@ -34,12 +34,13 @@ func init() {
 			LevelData:  levelData,
 			LevelCache: buildLevelCache(i+1, levelData),
 			TempTiles:  make([]TempTile, len(levelData.Tiles)),
-			Players:    make([]*PlayerData, config.MaxPlayers),
+			Players:    make([]*PlayerData, 0, config.MaxPlayers),
 			DoorTimer:  0,
 		}
 
 		rooms[i].resetTempTiles()
 	}
+
 }
 
 func (r *Room) resetTempTiles() {
@@ -50,16 +51,19 @@ func (r *Room) resetTempTiles() {
 
 // stringToUtf16 converts a string to a byte array of UTF-16 characters.
 func stringToUtf16(s string, maxLen int) []byte {
+	const space uint16 = 0x20
+
 	bytes := make([]byte, maxLen*2)
 
 	codes := utf16.Encode([]rune(s))
 	codesLen := len(codes)
-	if maxLen > codesLen {
-		maxLen = codesLen
-	}
 
 	for i := 0; i < maxLen; i++ {
-		binary.LittleEndian.PutUint16(bytes[i*2:], codes[i])
+		if i < codesLen {
+			binary.LittleEndian.PutUint16(bytes[i*2:], codes[i])
+		} else {
+			binary.LittleEndian.PutUint16(bytes[i*2:], space)
+		}
 	}
 
 	return bytes
@@ -73,24 +77,24 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 	writer.WriteLong(id)
 	writer.Write(stringToUtf16(l.Name, config.NameLength))
 	writer.WriteLong(l.Revision)
-	writer.WriteByte(byte(l.Type))
+	writer.WriteInteger(int(l.Type))
 	writer.WriteInteger(l.TileSet)
 	writer.WriteInteger(l.Up + 1)
 	writer.WriteInteger(l.Down + 1)
 	writer.WriteInteger(l.Left + 1)
 	writer.WriteInteger(l.Right + 1)
-	writer.WriteByte(byte(l.Music))
+	writer.WriteInteger(int(l.Music))
 	writer.WriteInteger(l.BootMap + 1)
 	writer.WriteByte(byte(l.BootX))
 	writer.WriteByte(byte(l.BootY))
-	writer.WriteByte(byte(l.Shop + 1))
+	writer.WriteInteger(int(l.Shop + 1))
 
 	for i := 0; i < len(l.Tiles); i++ {
 		for j := 0; j < len(l.Tiles[i].Num); j++ {
 			writer.WriteInteger(l.Tiles[i].Num[j])
 		}
 
-		writer.WriteByte(byte(l.Tiles[i].Type))
+		writer.WriteInteger(int(l.Tiles[i].Type))
 		writer.WriteInteger(l.Tiles[i].Data1)
 		writer.WriteInteger(l.Tiles[i].Data2)
 		writer.WriteInteger(l.Tiles[i].Data3)
@@ -99,6 +103,10 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 	for i := 0; i < config.MaxMapNpcs; i++ {
 		writer.WriteByte(byte(l.Npcs[i] + 1))
 	}
+
+	writer.WriteByte(0)
+	writer.WriteByte(0)
+	writer.WriteByte(0)
 
 	return writer.Bytes()
 }
