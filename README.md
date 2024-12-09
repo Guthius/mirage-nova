@@ -21,11 +21,14 @@ Mirage Nova is based on the Lite 2D Version of the VB6 Mirage Engine available a
 - Player account management and login system
 - Account management with multiple characters per account
 - Real-time multiplayer communication with efficient TCP networking
+
+The following features are currently in development:
+
+- In-game chat system (global, private, and local)
+- Item inventory system with support for trading and equipping items
 - NPC spawning, movement, and interactions
 - Basic combat mechanics
-- Item inventory system with support for trading and equipping items
 - Experience and leveling system for player progression
-- In-game chat system (global, private, and local)
 
 ## Build Instructions
 
