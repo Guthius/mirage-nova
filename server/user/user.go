@@ -29,7 +29,9 @@ func init() {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS accounts (
     		id INTEGER PRIMARY KEY AUTOINCREMENT,
     		name TEXT UNIQUE COLLATE NOCASE,
-    		password_hash TEXT
+    		password_hash TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			created_from_ip TEXT
     	)`)
 
 	if err != nil {
@@ -104,7 +106,7 @@ func Load(accountName string) *Account {
 }
 
 // CreateAccount creates a new account with the specified name and password.
-func Create(accountName string, password string) (*Account, bool) {
+func Create(accountName string, password string, createdFromIp string) (*Account, bool) {
 	if Exists(accountName) {
 		return nil, false
 	}
@@ -125,7 +127,7 @@ func Create(accountName string, password string) (*Account, bool) {
 		return nil, false
 	}
 
-	stmt, err := db.Prepare("INSERT INTO accounts (name, password_hash) VALUES (?, ?)")
+	stmt, err := db.Prepare("INSERT INTO accounts (name, password_hash, created_from_ip) VALUES (?, ?, ?)")
 	if err != nil {
 		log.Printf("error creating account '%s' (%s)\n", account.Name, err)
 		return nil, false
@@ -133,7 +135,7 @@ func Create(accountName string, password string) (*Account, bool) {
 
 	defer stmt.Close()
 
-	r, err := stmt.Exec(account.Name, account.PasswordHash)
+	r, err := stmt.Exec(account.Name, account.PasswordHash, createdFromIp)
 	if err != nil {
 		log.Printf("error creating account '%s' (%s)\n", account.Name, err)
 		return nil, false

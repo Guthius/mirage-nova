@@ -92,7 +92,7 @@ func HandleCreateAccount(player *PlayerData, packet *net.PacketReader) {
 		return
 	}
 
-	_, ok := user.Create(accountName, password)
+	_, ok := user.Create(accountName, password, player.Connection.RemoteAddr())
 	if !ok {
 		SendAlert(player, "There was an problem creating your account. Please try again later.")
 		return
