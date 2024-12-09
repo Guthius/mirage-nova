@@ -1,7 +1,12 @@
+<div align="center">
+    <img src="assets/logo.png" width="400">
+
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/guthius/mirage-nova)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Guthius/mirage-nova/go.yml)
 ![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/guthius/mirage-nova)
 ![GitHub License](https://img.shields.io/github/license/Guthius/mirage-nova)
+
+</div>
 
 # Mirage Nova
 
