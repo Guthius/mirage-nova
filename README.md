@@ -8,7 +8,7 @@
 
 </div>
 
-# Mirage Nova
+---
 
 **Mirage Nova** is a modernized 2D game development engine written in Go (Golang), specifically designed for creating small-scale online multiplayer role-playing games.
 
