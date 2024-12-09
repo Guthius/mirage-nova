@@ -10,7 +10,7 @@
 
 ---
 
-**Mirage Nova** is a modernized 2D game development engine written in Go (Golang), specifically designed for creating small-scale online multiplayer role-playing games.
+**Mirage Nova** is a 2D game development engine written in Go (Golang), specifically designed for creating small-scale online multiplayer role-playing games.
 
 It leverages Go's powerful concurrency model to enable efficient and scalable networking.
 
