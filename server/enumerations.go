@@ -48,7 +48,7 @@ const (
 	SvUpdateNpc
 	SEditNpc
 	SMapKey
-	SEditMap
+	SvEditLevel
 	SShopEditor
 	SvUpdateShop
 	SEditShop
@@ -92,9 +92,9 @@ const (
 	CWarpTo
 	CSetSprite
 	CGetStats
-	ClRequestNewMap
-	CMapData
-	ClNeedMap
+	ClRequestNewLevel
+	ClLevelData
+	ClNeedLevel
 	CMapGetItem
 	CMapDropItem
 	CMapRespawn
@@ -103,7 +103,7 @@ const (
 	CBanList
 	CBanDestroy
 	CBanPlayer
-	CRequestEditMap
+	ClRequestEditLevel
 	CRequestEditItem
 	CEditItem
 	CSaveItem

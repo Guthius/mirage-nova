@@ -1,8 +1,11 @@
 ﻿package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
+	"strings"
+	"unicode/utf16"
 
 	"github.com/guthius/mirage-nova/net"
 	"github.com/guthius/mirage-nova/server/character"
@@ -24,8 +27,10 @@ func init() {
 	PacketHandlers[ClDeleteCharacter] = HandleDeleteCharacter
 	PacketHandlers[ClSelectCharacter] = HandleSelectCharacter
 	PacketHandlers[ClPlayerMove] = HandlePlayerMove
-	PacketHandlers[ClRequestNewMap] = HandleRequestNewMap
-	PacketHandlers[ClNeedMap] = HandleNeedMap
+	PacketHandlers[ClRequestNewLevel] = HandleRequestNewLevel
+	PacketHandlers[ClLevelData] = HandleLevelData
+	PacketHandlers[ClNeedLevel] = HandleNeedLevel
+	PacketHandlers[ClRequestEditLevel] = HandleRequestEditLevel
 }
 
 func HandlePacket(player *PlayerData, reader *net.PacketReader) {
@@ -335,20 +340,112 @@ func HandlePlayerMove(player *PlayerData, packet *net.PacketReader) {
 // :: Player request for a new map ::
 // ::::::::::::::::::::::::::::::::::
 
-func HandleRequestNewMap(player *PlayerData, packet *net.PacketReader) {
+func HandleRequestNewLevel(player *PlayerData, packet *net.PacketReader) {
 	dir := character.Direction(packet.ReadLong())
 	if dir < character.Down || dir >= character.Right {
 		return
 	}
 
+	// MovePlayer(player, dir, MoveWalk)
 	// TODO: player.Move(dir, 1)
+}
+
+// :::::::::::::::::::::
+// :: Map data packet ::
+// :::::::::::::::::::::
+
+func utf16ToString(src []byte) string {
+	codes := make([]uint16, len(src)/2)
+	for i := 0; i < len(codes); i++ {
+		codes[i] = binary.LittleEndian.Uint16(src[i*2:])
+	}
+
+	runes := utf16.Decode(codes)
+	str := string(runes)
+
+	return strings.TrimSpace(str)
+}
+
+func HandleLevelData(player *PlayerData, packet *net.PacketReader) {
+	if player.Room == nil || player.Character == nil {
+		return
+	}
+
+	if player.Character.Access < character.AccessMapper {
+		return
+	}
+
+	levelId := player.Room.Id
+	levelData := player.Room.LevelData
+	newRevision := levelData.Revision + 1
+
+	levelData.Name = utf16ToString(packet.Read(config.NameLength * 2))
+	levelData.Revision = packet.ReadLong()
+	levelData.Type = data.LevelType(packet.ReadInteger())
+	levelData.TileSet = packet.ReadInteger()
+	levelData.Up = packet.ReadInteger() - 1
+	levelData.Down = packet.ReadInteger() - 1
+	levelData.Left = packet.ReadInteger() - 1
+	levelData.Right = packet.ReadInteger() - 1
+	levelData.Music = packet.ReadInteger()
+	levelData.BootMap = packet.ReadInteger() - 1
+	levelData.BootX = int(packet.ReadByte())
+	levelData.BootY = int(packet.ReadByte())
+	levelData.Shop = packet.ReadInteger() - 1
+
+	for i := 0; i < len(levelData.Tiles); i++ {
+		for j := 0; j < len(levelData.Tiles[i].Num); j++ {
+			levelData.Tiles[i].Num[j] = packet.ReadInteger()
+		}
+
+		levelData.Tiles[i].Type = data.TileType(packet.ReadInteger())
+		levelData.Tiles[i].Data1 = packet.ReadInteger()
+		levelData.Tiles[i].Data2 = packet.ReadInteger()
+		levelData.Tiles[i].Data3 = packet.ReadInteger()
+	}
+
+	for i := 0; i < config.MaxMapNpcs; i++ {
+		levelData.Npcs[i] = int(packet.ReadByte()) - 1
+	}
+
+	levelData.Revision = newRevision
+
+	/*
+	   For I = 1 To MAX_MAP_NPCS
+	       Call ClearMapNpc(I, MapNum)
+	   Next
+
+	   Call SendMapNpcsToMap(MapNum)
+	   Call SpawnMapNpcs(MapNum)
+
+	   ' Clear out it all
+	   For I = 1 To MAX_MAP_ITEMS
+	       Call SpawnItemSlot(I, 0, 0, 0, GetPlayerMap(Index), MapItem(GetPlayerMap(Index), I).X, MapItem(GetPlayerMap(Index), I).Y)
+	       Call ClearMapItem(I, GetPlayerMap(Index))
+	   Next
+
+	   ' Respawn
+	   Call SpawnMapItems(GetPlayerMap(Index))
+	*/
+
+	data.SaveLevel(levelId - 1)
+
+	// Rebuild the level cache
+	player.Room.LevelCache = buildLevelCache(levelId, levelData)
+
+	// Refresh level data for all players in the room
+	for _, p := range player.Room.Players {
+		if p.IsPlaying() {
+			SendLevelData(p)
+		}
+	}
 }
 
 // ::::::::::::::::::::::::::::
 // :: Need map yes/no packet ::
 // ::::::::::::::::::::::::::::
 
-func HandleNeedMap(player *PlayerData, reader *net.PacketReader) {
+func HandleNeedLevel(player *PlayerData, reader *net.PacketReader) {
 	//  Check if map data is needed to be sent
 	needMap := reader.ReadByte()
 	if needMap != 0 {
@@ -369,4 +466,23 @@ func HandleNeedMap(player *PlayerData, reader *net.PacketReader) {
 	player.Send(writer.Bytes())
 
 	//  Call SendDoorData(Index)
+}
+
+// :::::::::::::::::::::::::::::
+// :: Request edit map packet ::
+// :::::::::::::::::::::::::::::
+
+func HandleRequestEditLevel(player *PlayerData, reader *net.PacketReader) {
+	if player.Character == nil {
+		return
+	}
+
+	if player.Character.Access < character.AccessMapper {
+		return
+	}
+
+	writer := net.NewWriter()
+	writer.WriteInteger(SvEditLevel)
+
+	player.Send(writer.Bytes())
 }
