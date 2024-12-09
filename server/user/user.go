@@ -81,7 +81,7 @@ func Load(accountName string) *Account {
 		return nil
 	}
 
-	stmt, err := db.Prepare("SELECT * FROM accounts WHERE name = ?")
+	stmt, err := db.Prepare("SELECT id, name, password_hash FROM accounts WHERE name = ?")
 	if err != nil {
 		log.Printf("error loading account '%s' (%s)\n", accountName, err)
 		return nil
