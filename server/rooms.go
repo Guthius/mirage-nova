@@ -2,6 +2,7 @@
 
 import (
 	"encoding/binary"
+	"fmt"
 	"unicode/utf16"
 
 	"github.com/guthius/mirage-nova/net"
@@ -157,7 +158,7 @@ func (r *Room) AddPlayer(p *PlayerData) {
 	shop := data.GetShop(r.LevelData.Shop)
 	if shop != nil {
 		if shop.JoinSay != "" {
-			SendMessage(p, shop.Name+" says, '"+shop.JoinSay+"'", color.SayColor)
+			SendMessage(p, fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), color.SayColor)
 		}
 	}
 
@@ -208,7 +209,7 @@ func (r *Room) RemovePlayer(p *PlayerData) {
 	shop := data.GetShop(r.LevelData.Shop)
 	if shop != nil {
 		if shop.LeaveSay != "" {
-			SendMessage(p, shop.Name+" says, '"+shop.LeaveSay+"'", color.SayColor)
+			SendMessage(p, fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), color.SayColor)
 		}
 	}
 
