@@ -316,19 +316,19 @@ func HandleNeedMap(player *PlayerData, reader *net.PacketReader) {
 	//  Check if map data is needed to be sent
 	needMap := reader.ReadByte()
 	if needMap != 0 {
-		// Call SendMap(Index, GetPlayerMap(Index))
+		SendLevelData(player)
 	}
 
 	// For I = 1 To MAX_MAPS
 	//     Call SendMapItemsTo(Index, I)
 	//     Call SendMapNpcsTo(Index, I)
 	// Next I
-	// Call SendJoinMap(Index)
 
-	player.GettingMap = false
+	player.GettingLevel = false
 
+	// Tell the player all map data has been sent
 	writer := net.NewWriter()
-	writer.WriteInteger(SvMapDone)
+	writer.WriteInteger(SvLevelDone)
 
 	player.Send(writer.Bytes())
 

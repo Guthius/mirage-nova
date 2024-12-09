@@ -315,7 +315,7 @@ func JoinGame(p *PlayerData) {
 	SendStats(p)
 
 	// Warp the player to his saved location
-	WarpPlayer(p, char.Map, char.X, char.Y)
+	rooms[char.Room].AddPlayer(p)
 
 	// Send welcome messages
 	SendWelcome(p)
@@ -1477,49 +1477,6 @@ func JoinGame(p *PlayerData) {
 
 // End Sub
 
-func WarpPlayer(pl *PlayerData, mapId int, x int, y int) {
-	if !pl.IsPlaying() {
-		return
-	}
-
-	targetMap := data.GetLevel(mapId)
-	if targetMap == nil {
-		return
-	}
-
-	pl.Target = -1
-	pl.TargetType = TargetNone
-
-	currentMapId := pl.Character.Map
-	currentMap := data.GetLevel(currentMapId)
-	if currentMap == nil {
-		return
-	}
-
-	// TempMaps[currentMapId].PlayerCount--
-
-	// Check if there was a shop on the map the pl is leaving, and if so say goodbye
-	shop := data.GetShop(currentMap.Shop)
-	if shop != nil && len(shop.LeaveSay) > 0 {
-		SendMessage(pl, fmt.Sprintf("%s says, '%s'", shop.Name, shop.LeaveSay), color.SayColor)
-	}
-
-	pl.Character.Map = mapId
-	pl.Character.X = x
-	pl.Character.Y = y
-
-	// Check if there is a shop on the map and say hello if so
-	shop = data.GetShop(currentMap.Shop)
-	if shop != nil && len(shop.JoinSay) > 0 {
-		SendMessage(pl, fmt.Sprintf("%s says, '%s'", shop.Name, shop.JoinSay), color.SayColor)
-	}
-
-	// TempMaps[mapId].PlayerCount++
-
-	pl.GettingMap = true
-	SendCheckForMap(pl, mapId)
-}
-
 // Public Sub PlayerChangeMap(ByVal Index As Long, ByVal MapNum As Long, ByVal X As Long, ByVal Y As Long)
 //     Dim ShopNum As Long
 //     Dim OldMap As Long
@@ -1613,7 +1570,7 @@ func Move(p *PlayerData, dir character.Direction, movement int) {
 		return
 	}
 
-	level := data.GetLevel(char.Map)
+	level := data.GetLevel(char.Room)
 	if level == nil {
 		return
 	}
@@ -1790,7 +1747,7 @@ func Move(p *PlayerData, dir character.Direction, movement int) {
 	//     End If
 
 	if !moved {
-		WarpPlayer(p, char.Map, char.X, char.Y)
+		p.WarpTo(&rooms[char.Room], char.X, char.Y)
 	}
 }
 

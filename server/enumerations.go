@@ -27,11 +27,11 @@ const (
 	SPlayerXY
 	SAttack
 	SNpcAttack
-	SvCheckForMap
-	SMapData
+	SvCheckForLevel
+	SvLevelData
 	SMapItemData
 	SMapNpcData
-	SvMapDone
+	SvLevelDone
 	SSayMsg
 	SvGlobalMessage
 	SAdminMsg

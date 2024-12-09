@@ -19,6 +19,8 @@ const (
 	MaxInventory       = 50
 	MaxCharacterSpells = 20
 	MaxTrades          = 8
+
+	NameLength = 32
 )
 
 const (
@@ -28,7 +30,7 @@ const (
 )
 
 const (
-	StartMap = 5
-	StartX   = 5
-	StartY   = 8
+	StartRoom = 5
+	StartX    = 5
+	StartY    = 8
 )

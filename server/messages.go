@@ -235,7 +235,7 @@ func SendStats(p *PlayerData) {
 	p.Send(writer.Bytes())
 }
 
-func SendCheckForMap(p *PlayerData, levelId int) {
+func SendCheckForLevel(p *PlayerData, levelId int) {
 	levelData := data.GetLevel(levelId)
 	if levelData == nil {
 		return
@@ -243,11 +243,18 @@ func SendCheckForMap(p *PlayerData, levelId int) {
 
 	writer := net.NewWriter()
 
-	writer.WriteInteger(SvCheckForMap)
+	writer.WriteInteger(SvCheckForLevel)
 	writer.WriteLong(levelId + 1)
 	writer.WriteLong(levelData.Revision)
 
 	p.Send(writer.Bytes())
+}
+
+func SendLevelData(p *PlayerData) {
+	if p.Room == nil {
+		return
+	}
+	p.Send(p.Room.LevelCache)
 }
 
 func SendMessage(p *PlayerData, message string, color color.Color) {

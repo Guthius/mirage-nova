@@ -67,7 +67,7 @@ type Character struct {
 	Equipment   equipment.Data
 	Inv         [config.MaxInventory]InventorySlot
 	Spells      [config.MaxCharacterSpells]int
-	Map         int
+	Room        int
 	X           int
 	Y           int
 	Dir         Direction
@@ -107,7 +107,7 @@ func init() {
 		    equip_shield INTEGER NOT NULL DEFAULT -1,
 		    inventory TEXT NOT NULL DEFAULT '',
 		    spells TEXT NOT NULL DEFAULT '',
-		    map INTEGER NOT NULL DEFAULT 0, 
+		    room INTEGER NOT NULL DEFAULT 0, 
 		    x INTEGER NOT NULL DEFAULT 0, 
 		    y INTEGER NOT NULL DEFAULT 0,
 		    dir INTEGER NOT NULL DEFAULT 0
@@ -237,7 +237,7 @@ func LoadCharactersForAccount(accountId int64) []Character {
 			&character.Equipment.Shield,
 			&characterInventory,
 			&characterSpells,
-			&character.Map,
+			&character.Room,
 			&character.X,
 			&character.Y,
 			&character.Dir)
@@ -274,7 +274,7 @@ func (c *Character) Clear() {
 	c.Equipment.Armor = -1
 	c.Equipment.Helmet = -1
 	c.Equipment.Shield = -1
-	c.Map = 0
+	c.Room = 0
 	c.X = 0
 	c.Y = 0
 	c.Dir = Down
@@ -353,7 +353,7 @@ func (c *Character) Save() bool {
 		    equip_shield = ?,
 		    inventory = ?,
 		    spells = ?,
-		    map = ?,
+		    room = ?,
 		    x = ?,
 		    y = ?,
 		    dir = ?
@@ -388,7 +388,7 @@ func (c *Character) Save() bool {
 		c.Stats.Magic,
 		characterInventory,
 		characterSpells,
-		c.Map,
+		c.Room,
 		c.X,
 		c.Y,
 		c.Dir)
@@ -444,7 +444,7 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		Exp:       0,
 		Access:    AccessNone,
 		PK:        false,
-		Map:       config.StartMap,
+		Room:      config.StartRoom,
 		X:         config.StartX,
 		Y:         config.StartY,
 		Dir:       Down,
@@ -509,7 +509,7 @@ func CreateCharacter(accountId int64, name string, gender CharacterGender, class
 		character.Stats.Magic,
 		characterInventory,
 		characterSpells,
-		character.Map,
+		character.Room,
 		character.X,
 		character.Y,
 		character.Dir)

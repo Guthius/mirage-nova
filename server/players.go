@@ -32,7 +32,8 @@ type PlayerData struct {
 	Character     *character.Character
 	TargetType    TargetType
 	Target        int
-	GettingMap    bool
+	GettingLevel  bool
+	Room          *Room
 }
 
 var players [config.MaxPlayers]PlayerData
@@ -63,7 +64,8 @@ func (p *PlayerData) Clear() {
 	p.Character = nil
 	p.TargetType = TargetNone
 	p.Target = -1
-	p.GettingMap = false
+	p.GettingLevel = false
+	p.Room = nil
 
 	for i := 0; i < config.MaxChars; i++ {
 		p.CharacterList[i].Clear()
@@ -144,6 +146,14 @@ func (p *PlayerData) GetVital(vital vitals.Type) int {
 	}
 
 	return 0
+}
+
+// WarpTo moves the player to the specified room and position.
+func (p *PlayerData) WarpTo(room *Room, x, y int) {
+	p.Room = room
+	p.Character.X = x
+	p.Character.Y = y
+	p.Room.AddPlayer(p)
 }
 
 // IsAccountLoggedIn returns true if there is a player logged in with the specified account name; otherwise, returns false.
