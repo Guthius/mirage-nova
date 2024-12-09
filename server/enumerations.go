@@ -20,11 +20,11 @@ const (
 	SvPlayerSP
 	SvPlayerStats
 	SvPlayerData
-	SPlayerMove
+	SvPlayerMove
 	SNpcMove
 	SPlayerDir
 	SNpcDir
-	SPlayerXY
+	SvPlayerXY
 	SAttack
 	SNpcAttack
 	SvCheckForLevel
@@ -36,7 +36,7 @@ const (
 	SvGlobalMessage
 	SAdminMsg
 	SvPlayerMessage
-	SMapMsg
+	SvRoomMessage
 	SSpawnItem
 	SItemEditor
 	SvUpdateItem
@@ -68,20 +68,20 @@ const (
 
 const (
 	_ = iota
-	ClpGetClasses
-	ClpCreateAccount
-	ClpDeleteAccount
-	ClpLogin
-	ClpCreateCharacter
-	ClpDeleteCharacter
-	ClpSelectCharacter
+	ClGetClasses
+	ClCreateAccount
+	ClDeleteAccount
+	ClLogin
+	ClCreateCharacter
+	ClDeleteCharacter
+	ClSelectCharacter
 	CSayMsg
 	CEmoteMsg
 	CBroadcastMsg
 	CGlobalMsg
 	CAdminMsg
 	CPlayerMsg
-	CPlayerMove
+	ClPlayerMove
 	CPlayerDir
 	CUseItem
 	CAttack

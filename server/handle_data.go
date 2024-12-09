@@ -17,12 +17,13 @@ type PacketHandler func(player *PlayerData, packet *net.PacketReader)
 var PacketHandlers [MaxClientPacketId]PacketHandler
 
 func init() {
-	PacketHandlers[ClpGetClasses] = HandleGetClasses
-	PacketHandlers[ClpCreateAccount] = HandleCreateAccount
-	PacketHandlers[ClpLogin] = HandleLogin
-	PacketHandlers[ClpCreateCharacter] = HandleCreateCharacter
-	PacketHandlers[ClpDeleteCharacter] = HandleDeleteCharacter
-	PacketHandlers[ClpSelectCharacter] = HandleSelectCharacter
+	PacketHandlers[ClGetClasses] = HandleGetClasses
+	PacketHandlers[ClCreateAccount] = HandleCreateAccount
+	PacketHandlers[ClLogin] = HandleLogin
+	PacketHandlers[ClCreateCharacter] = HandleCreateCharacter
+	PacketHandlers[ClDeleteCharacter] = HandleDeleteCharacter
+	PacketHandlers[ClSelectCharacter] = HandleSelectCharacter
+	PacketHandlers[ClPlayerMove] = HandlePlayerMove
 	PacketHandlers[ClRequestNewMap] = HandleRequestNewMap
 	PacketHandlers[ClNeedMap] = HandleNeedMap
 }
@@ -293,6 +294,41 @@ func HandleSelectCharacter(player *PlayerData, packet *net.PacketReader) {
 	log.Printf("[%d] %s(%s) started playing\n",
 		player.Id, player.Account.Name,
 		player.Character.Name)
+}
+
+// :::::::::::::::::::::::::::::
+// :: Moving character packet ::
+// :::::::::::::::::::::::::::::
+
+const (
+	MoveWalk = 1
+	MoveRun  = 2
+)
+
+func HandlePlayerMove(player *PlayerData, packet *net.PacketReader) {
+	if player.GettingLevel {
+		return
+	}
+
+	dir := character.Direction(packet.ReadLong())
+
+	movement := packet.ReadLong()
+	if movement != MoveWalk && movement != MoveRun {
+		ReportHack(player, "invalid movement")
+		return
+	}
+
+	// Prevent player from moving if they have cast a spell
+	if player.CastSpell {
+		if utils.GetTickCount() > player.AttackTimer+1000 {
+			player.CastSpell = false
+		} else {
+			SendPlayerXY(player)
+			return
+		}
+	}
+
+	MovePlayer(player, dir, movement)
 }
 
 // ::::::::::::::::::::::::::::::::::

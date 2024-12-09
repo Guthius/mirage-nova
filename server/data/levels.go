@@ -156,8 +156,17 @@ func (level *LevelData) Contains(x int, y int) bool {
 	return !(x < 0 || y < 0 || x >= level.Width || y >= level.Height)
 }
 
-// GetTileType returns the type of the tile at the specified coordinates.
-// Returns TileTypeWalkable if the coordinates are out of bounds.
+// GetTile returns the tile at the specified position.
+func (level *LevelData) GetTile(x int, y int) *Tile {
+	if !level.Contains(x, y) {
+		return nil
+	}
+	tid := y*level.Width + x
+	return &level.Tiles[tid]
+}
+
+// GetTileType returns the type of the tile at the specified position.
+// Returns TileTypeWalkable if the position is out of bounds.
 func (level *LevelData) GetTileType(x int, y int) TileType {
 	if !level.Contains(x, y) {
 		return TileTypeWalkable

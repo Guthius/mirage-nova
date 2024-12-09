@@ -34,6 +34,8 @@ type PlayerData struct {
 	Target        int
 	GettingLevel  bool
 	Room          *Room
+	AttackTimer   int64
+	CastSpell     bool
 }
 
 var players [config.MaxPlayers]PlayerData
@@ -57,6 +59,7 @@ func GetPlayersInGame() []*PlayerData {
 	return result
 }
 
+// Clear resets all fields of the player back to their default values.
 func (p *PlayerData) Clear() {
 	p.Connection = nil
 	p.Account = nil
@@ -66,6 +69,8 @@ func (p *PlayerData) Clear() {
 	p.Target = -1
 	p.GettingLevel = false
 	p.Room = nil
+	p.AttackTimer = 0
+	p.CastSpell = false
 
 	for i := 0; i < config.MaxChars; i++ {
 		p.CharacterList[i].Clear()

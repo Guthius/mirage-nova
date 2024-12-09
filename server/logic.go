@@ -10,6 +10,7 @@ import (
 	"github.com/guthius/mirage-nova/server/data"
 	"github.com/guthius/mirage-nova/server/data/equipment"
 	"github.com/guthius/mirage-nova/server/data/vitals"
+	"github.com/guthius/mirage-nova/server/utils"
 )
 
 // Public Sub AttackNpc(ByVal Attacker As Long, ByVal MapNpcNum As Long, ByVal Damage As Long)
@@ -1543,212 +1544,59 @@ func JoinGame(p *PlayerData) {
 //     PlayersOnMap(MapNum) = YES
 // End Sub
 
-func GetAdjacentTile(x int, y int, dir character.Direction) (int, int) {
-	switch dir {
-	case character.Up:
-		return x, y - 1
-	case character.Down:
-		return x, y + 1
-	case character.Left:
-		return x - 1, y
-	case character.Right:
-		return x + 1, y
-	}
-	return x, y
-}
 
-// MoveToLevel moves the player to the level with the specified id.
-func MoveToLevel(p *PlayerData, levelId int, x int, y int) bool {
-	return false
-	//  TODO: PlayerChangeMap(Index, destMapId, destX, destY)
-}
-
-// Move moves the player by a single tile in the specified direction.
-func Move(p *PlayerData, dir character.Direction, movement int) {
-	char := p.Character
-	if char == nil {
+// MovePlayerToRoom moves the player to the specified room and position.
+func MovePlayerToRoom(player *PlayerData, roomId int, dx int, dy int) {
+	if roomId < 0 || roomId >= config.MaxMaps {
 		return
 	}
 
-	level := data.GetLevel(char.Room)
-	if level == nil {
+	room := &rooms[roomId]
+	if room == player.Room {
 		return
 	}
 
-	char.Dir = dir
+	room.AddPlayerAt(player, dx, dy)
+}
 
-	moved := false
+// MovePlayer moves the player in the specified direction.
+func MovePlayer(player *PlayerData, dir character.Direction, movement int) {
+	if player.Room == nil || player.Character == nil {
+		return
+	}
 
-	// Get the destination tile.
-	dx, dy := GetAdjacentTile(char.X, char.Y, char.Dir)
+	player.Character.Dir = dir
 
-	// If the destination tile is out of bounds, try to move to the adjacent level.
-	if !level.Contains(dx, dy) {
-		switch p.Character.Dir {
+	dx, dy := utils.GetAdjacentTile(player.Character.X, player.Character.Y, dir)
+
+	// If the player is trying to move out of bounds move them to the adjacent room
+	if !player.Room.LevelData.Contains(dx, dy) {
+		switch dir {
 		case character.Up:
-			moved = MoveToLevel(p, level.Up, dx, level.Height-1)
+			MovePlayerToRoom(player, player.Room.LevelData.Up, dx, player.Room.LevelData.Height-1)
 		case character.Down:
-			moved = MoveToLevel(p, level.Down, dx, 0)
+			MovePlayerToRoom(player, player.Room.LevelData.Down, dx, 0)
 		case character.Left:
-			moved = MoveToLevel(p, level.Left, level.Width-1, dy)
+			MovePlayerToRoom(player, player.Room.LevelData.Left, player.Room.LevelData.Width-1, dy)
 		case character.Right:
-			moved = MoveToLevel(p, level.Right, 0, dy)
+			MovePlayerToRoom(player, player.Room.LevelData.Right, 0, dy)
 		}
-	} else {
-		char.X = dx
-		char.Y = dy
-
-		writer := net.NewWriter()
-		writer.WriteInteger(SPlayerMove)
-		writer.WriteLong(p.Id + 1)
-		writer.WriteLong(dx)
-		writer.WriteLong(dy)
-		writer.WriteLong(int(dir))
-		writer.WriteLong(movement)
-
-		// TODO: SendDataToMapBut(Index, GetPlayerMap(Index), Buffer.ToArray())
-
-		moved = true
+		return
 	}
 
-	//     ' Check to see if the tile is a warp tile, and if so warp them
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_WARP Then
-	//         MapNum = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1
-	//         X = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2
-	//         Y = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data3
+	// Move the player to the new position
+	writer := net.NewWriter()
 
-	//         Call PlayerWarp(Index, MapNum, X, Y)
-	//         Moved = YES
-	//     End If
+	writer.WriteInteger(SvPlayerMove)
+	writer.WriteLong(player.Id + 1)
+	writer.WriteLong(player.Character.X)
+	writer.WriteLong(player.Character.Y)
+	writer.WriteLong(int(player.Character.Dir))
+	writer.WriteLong(movement)
 
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_MSG Then
-	//         Dim msgtype As Byte
-	//         msgtype = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2
+	player.Room.SendExclude(writer.Bytes(), player)
 
-	//         If msgtype = 0 Then
-	//             Call PlayerMsg(Index, Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1), White)
-	//         ElseIf msgtype = 1 Then
-	//             Call GlobalMsg(Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1), Yellow)
-	//         End If
-	//     End If
-
-	//     ' Check for key trigger open
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_KEYOPEN Then
-	//         X = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1
-	//         Y = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2
-
-	//         If Map(GetPlayerMap(Index)).Tile(X, Y).Type = TILE_TYPE_KEY And TempTile(GetPlayerMap(Index)).DoorOpen(X, Y) = NO Then
-	//             TempTile(GetPlayerMap(Index)).DoorOpen(X, Y) = YES
-	//             TempTile(GetPlayerMap(Index)).DoorTimer = GetTickCount
-
-	//             Set Buffer = New clsBuffer
-	//             Buffer.PreAllocate 14
-	//             Buffer.WriteInteger SMapKey
-	//             Buffer.WriteLong X
-	//             Buffer.WriteLong Y
-	//             Buffer.WriteLong 1
-	//             Call SendDataToMap(GetPlayerMap(Index), Buffer.ToArray())
-	//             Call MapMsg(GetPlayerMap(Index), "A door has been unlocked.", White)
-	//             Moved = YES
-	//         End If
-	//     End If
-
-	//     X = GetPlayerX(Index)
-	//     Y = GetPlayerY(Index)
-
-	//     ' check if doors on players left
-
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_HEAL Then
-	//         Call SetPlayerVital(Index, Vitals.HP, GetPlayerMaxVital(Index, Vitals.HP))
-	//         Call SendVital(Index, Vitals.HP)
-	//         Call PlayerMsg(Index, "You feel odd as a strange glow emanated from you and you are lifted into the air. Bright orbs of light travel around you. You are miraculously healed!", BrightGreen)
-	//     End If
-
-	//     ' Check for kill tile, and if so kill them
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_KILL Then
-	//         Dim nodamage As Boolean
-	//         nodamage = False
-
-	//         'Check the Armor Slot
-	//         'If GetPlayerArmorSlot(Index) > 0 Then
-	//         '    If GetPlayerInvItemNum(Index, GetPlayerArmorSlot(Index)) = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2 Then
-	//         '        nodamage = True
-	//         '    End If
-	//         'End If
-
-	//         'Check the Helmet Slot
-	//         'If GetPlayerHelmetSlot(Index) > 0 Then
-	//         '    If GetPlayerInvItemNum(Index, GetPlayerHelmetSlot(Index)) = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2 Then
-	//         '        nodamage = True
-	//         '    End If
-	//         'End If
-
-	//         'Check the Shield Slot
-	//         'If GetPlayerShieldSlot(Index) > 0 Then
-	//         '    If GetPlayerInvItemNum(Index, GetPlayerShieldSlot(Index)) = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2 Then
-	//         '        nodamage = True
-	//         '    End If
-	//         'End If
-
-	//         'Check the Weapon Slot
-	//         'If GetPlayerWeaponSlot(Index) > 0 Then
-	//         '    If GetPlayerInvItemNum(Index, GetPlayerWeaponSlot(Index)) = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data2 Then
-	//         '        nodamage = True
-	//         '    End If
-	//         'End If
-
-	//         ' Do Nothing
-	//         If nodamage = False Then
-	//             ' Check to see if the sucker is going to die!
-	//             If GetPlayerVital(Index, Vitals.HP) > Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1) Then
-	//                 Call SetPlayerVital(Index, Vitals.HP, GetPlayerVital(Index, Vitals.HP) - Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1))
-	//                 Call SendVital(Index, Vitals.HP)
-	//                 Call PlayerMsg(Index, "You've taken " & Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1) & " damage!", BrightRed)
-	//             ElseIf GetPlayerVital(Index, Vitals.HP) <= Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1) Then
-	//                 Call PlayerMsg(Index, "You've taken " & Trim$(Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1) & " damage, which has killed you!", BrightRed)
-	//                 Call GlobalMsg("The player " & GetPlayerName(Index) & " has died!", BrightRed)
-
-	//                 ' Warp player away
-	//                 If Map(GetPlayerMap(Index)).BootMap > 0 And Map(GetPlayerMap(Index)).BootX > 0 And Map(GetPlayerMap(Index)).BootY > 0 Then
-	//                     Call PlayerWarp(Index, Map(GetPlayerMap(Index)).BootMap, Map(GetPlayerMap(Index)).BootX, Map(GetPlayerMap(Index)).BootY)
-	//                     Moved = YES
-	//                 Else
-	//                     Call PlayerWarp(Index, START_MAP, START_X, START_Y)
-	//                     Moved = YES
-	//                 End If
-
-	//                 ' Restore vitals
-	//                 Call SetPlayerVital(Index, Vitals.HP, GetPlayerMaxVital(Index, HP))
-	//                 Call SetPlayerVital(Index, Vitals.MP, GetPlayerMaxVital(Index, MP))
-	//                 Call SetPlayerVital(Index, Vitals.SP, GetPlayerMaxVital(Index, SP))
-	//                 Call SendVital(Index, HP)
-	//                 Call SendVital(Index, MP)
-	//                 Call SendVital(Index, SP)
-	//             End If
-	//         End If
-	//     End If
-
-	//     ' ///////////////////////
-	//     ' //check 4 sprite tile//
-	//     ' ///////////////////////
-	//     ' Check for sprite tile and then change the sprite
-	//     If Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Type = TILE_TYPE_SPRITE Then
-	//         Dim spritenum As Long
-
-	//         spritenum = Map(GetPlayerMap(Index)).Tile(GetPlayerX(Index), GetPlayerY(Index)).Data1
-	//         Call SetPlayerSprite(Index, spritenum)
-	//         Call SendPlayerData(Index)
-	//     End If
-
-	//     ' They tried to hack
-	//     If Moved = NO Then
-	//         'Call HackingAttempt(Index, "Position Modification")
-	//         Call PlayerWarp(Index, GetPlayerMap(Index), GetPlayerX(Index), GetPlayerY(Index))
-	//     End If
-
-	if !moved {
-		p.WarpTo(&rooms[char.Room], char.X, char.Y)
-	}
+	TriggerTileEffect(player)
 }
 
 // CheckEquippedItems checks wether the type of the items equipped by the specified player match the slots in which they are equipped.

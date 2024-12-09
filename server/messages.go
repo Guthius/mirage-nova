@@ -235,6 +235,20 @@ func SendStats(p *PlayerData) {
 	p.Send(writer.Bytes())
 }
 
+func SendPlayerXY(p *PlayerData) {
+	if p.Character == nil {
+		return
+	}
+
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvPlayerXY)
+	writer.WriteLong(p.Character.X)
+	writer.WriteLong(p.Character.Y)
+
+	p.Send(writer.Bytes())
+}
+
 func SendCheckForLevel(p *PlayerData, levelId int) {
 	levelData := data.GetLevel(levelId)
 	if levelData == nil {

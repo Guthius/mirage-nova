@@ -12,7 +12,9 @@ import (
 )
 
 type TempTile struct {
-	DoorOpen bool
+	Data      *data.Tile
+	DoorOpen  bool
+	DoorTimer int64
 }
 
 type Room struct {
@@ -46,7 +48,10 @@ func init() {
 
 func (r *Room) resetTempTiles() {
 	for i := 0; i < len(r.TempTiles); i++ {
-		r.TempTiles[i].DoorOpen = false
+		tile := &r.TempTiles[i]
+		tile.Data = &r.LevelData.Tiles[i]
+		tile.DoorOpen = false
+		tile.DoorTimer = 0
 	}
 }
 
@@ -113,9 +118,37 @@ func buildLevelCache(id int, l *data.LevelData) []byte {
 }
 
 // Send a packet with the specified bytes to all players on the level.
-func (level *Room) Send(bytes []byte) {
-	for _, p := range level.Players {
+func (r *Room) Send(bytes []byte) {
+	for _, p := range r.Players {
 		p.Send(bytes)
+	}
+}
+
+// SendExclude sends a packet with the specified bytes to all players on the level except the specified player.
+func (r *Room) SendExclude(bytes []byte, exclude *PlayerData) {
+	for _, p := range r.Players {
+		if p == exclude {
+			continue
+		}
+		p.Send(bytes)
+	}
+}
+
+// SendMessage sends a message to all players in the room.
+func (r *Room) SendMessage(message string, color color.Color) {
+	writer := net.NewWriter()
+
+	writer.WriteInteger(SvRoomMessage)
+	writer.WriteString(message)
+	writer.WriteByte(byte(color))
+
+	r.Send(writer.Bytes())
+}
+
+func (r *Room) SendPlayerData(p *PlayerData) {
+	playerData := getPlayerDataPacket(p)
+	for _, o := range r.Players {
+		o.Send(playerData)
 	}
 }
 
@@ -127,6 +160,21 @@ func (r *Room) Contains(p *PlayerData) bool {
 		}
 	}
 	return false
+}
+
+func (r *Room) AddPlayerAt(p *PlayerData, x int, y int) {
+	p.Character.X = x
+	p.Character.Y = y
+
+	// If the player is already in the room just send the updated player data to all players in the room
+	if p.Room == r {
+		r.SendPlayerData(p)
+		return
+	}
+
+	r.AddPlayer(p)
+
+	TriggerTileEffect(p)
 }
 
 // AddPlayer adds the player to the level
@@ -163,10 +211,7 @@ func (r *Room) AddPlayer(p *PlayerData) {
 	}
 
 	// Send the player data to all players in the room including the new player
-	playerData := getPlayerDataPacket(p)
-	for _, o := range r.Players {
-		o.Send(playerData)
-	}
+	r.SendPlayerData(p)
 
 	r.sendDoorDataTo(p)
 
@@ -250,4 +295,13 @@ func getPlayerDataPacket(p *PlayerData) []byte {
 	writer.WriteLong(pk)
 
 	return writer.Bytes()
+}
+
+// GetTile returns the tile at the specified position.
+func (r *Room) GetTile(x int, y int) *TempTile {
+	if !r.LevelData.Contains(x, y) {
+		return nil
+	}
+	tid := y*r.LevelData.Width + x
+	return &r.TempTiles[tid]
 }
