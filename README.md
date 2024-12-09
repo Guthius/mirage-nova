@@ -14,6 +14,8 @@
 
 It leverages Go's powerful concurrency model to enable efficient and scalable networking.
 
+Mirage Nova is based on the Lite 2D Version of the VB6 Mirage Engine available at [https://mirage-engine.uk/](https://mirage-engine.uk/).
+
 ## Features
 
 - Player account management and login system
@@ -57,12 +59,6 @@ Execute the built server binary:
 cd ../bin
 ./server
 ```
-
-## Legacy
-
-The Mirage Nova Engine represents a significant step forward from its predecessor, the VB6-based Mirage Engine, by embracing modern technologies and best practices.
-
-Mirage Nova is based on the Lite 2D Version of the VB6 Mirage Engine available at [https://mirage-engine.uk/](https://mirage-engine.uk/).
 
 ## License
 
